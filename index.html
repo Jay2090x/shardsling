@@ -7,8 +7,8 @@
     <meta name="description" content="Shardsling: hook crystal shards, swing them on a neon rope and fling them into each other." />
     <title>Shardsling</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <script type="module" crossorigin src="./assets/index-DeW4K1Gv.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-D_ERAt8A.css">
+    <script type="module" crossorigin src="./assets/index-DWIbecgo.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-D03zyuzi.css">
   </head>
   <body>
     <canvas id="game" aria-label="Shardsling game area"></canvas>
@@ -35,6 +35,20 @@
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
     </button>
 
+    <button id="mute-btn" type="button" aria-label="Mute sound" aria-pressed="false" title="Sound on (M)">
+      <svg class="icon-on" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" class="fill"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" class="line"/></svg>
+      <svg class="icon-off" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" class="fill"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" class="line"/></svg>
+    </button>
+
+    <section id="perks" class="overlay hidden" aria-live="polite">
+      <div class="panel perk-panel" role="dialog" aria-labelledby="perk-title">
+        <p class="perk-kicker" id="perk-kicker">WAVE 1 CLEAR</p>
+        <h2 class="big" id="perk-title">CHOOSE A PERK</h2>
+        <div class="perk-cards" id="perk-cards"></div>
+        <p class="hint desktop-only">Press 1 / 2 / 3 or click a card</p>
+      </div>
+    </section>
+
     <section id="menu" class="overlay">
       <div class="panel">
         <h1 class="title">SHARD<span>SLING</span></h1>
@@ -45,7 +59,7 @@
           <div class="row"><span>Move</span><kbd>WASD</kbd><kbd>Arrows</kbd><em>or point with the mouse</em></div>
           <div class="row"><span>Hook &amp; swing</span><kbd>hold Space</kbd><kbd>hold click</kbd></div>
           <div class="row"><span>Fling</span><kbd>release</kbd></div>
-          <div class="row"><span>Pause</span><kbd>P</kbd><kbd>Esc</kbd></div>
+          <div class="row"><span>Pause</span><kbd>P</kbd><kbd>Esc</kbd><span class="sep"></span><span>Sound</span><kbd>M</kbd></div>
         </div>
         <div class="controls hidden" id="controls-touch">
           <h2>Touch</h2>
