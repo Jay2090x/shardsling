@@ -30,6 +30,12 @@ interface FloatText {
 
 export const TIER_COLORS = ['#22e5ff', '#4da3ff', '#b45cff', '#ff2bd6'];
 
+/** The player's own color: no crystal, enemy, rope or UI element uses this green. */
+export const DRONE_COLOR = '#7dff5a';
+export const DRONE_RGB = '125,255,90';
+/** How long the "YOU" spotlight shows at wave start and after losing a life (seconds). */
+export const SPOTLIGHT_TIME = 1.5;
+
 export class Effects {
   particles: Particle[] = [];
   rings: Ring[] = [];
@@ -38,12 +44,18 @@ export class Effects {
   banner: { text: string; sub: string; life: number; color?: string } | null = null;
   hurtFlash = 0;
   trails = new Map<number, { x: number; y: number }[]>();
+  /** recent drone positions (render time), for the short motion trail */
+  droneTrail: { x: number; y: number; t: number }[] = [];
+  /** >0: "YOU" spotlight around the drone (wave start / respawn) */
+  spotlight = 0;
 
   clear(): void {
     this.particles = [];
     this.rings = [];
     this.texts = [];
     this.trails.clear();
+    this.droneTrail = [];
+    this.spotlight = 0;
     this.shake = 0;
     this.banner = null;
     this.hurtFlash = 0;
@@ -94,11 +106,13 @@ export class Effects {
         this.rings.push({ x: e.x, y: e.y, r: 20, grow: 420, life: 0.45, max: 0.45, color: '#ff3b5c' });
         this.shake = 18;
         this.hurtFlash = 0.35;
+        if (e.lives > 0) this.spotlight = SPOTLIGHT_TIME;
         break;
       case 'wave':
         this.banner = e.boss
           ? { text: 'BOSS', sub: `WAVE ${e.wave}: smash the core`, life: 2.4, color: '#ff3b5c' }
           : { text: `WAVE ${e.wave}`, sub: '', life: 1.6 };
+        this.spotlight = SPOTLIGHT_TIME;
         break;
       case 'clear':
         this.banner = { text: `WAVE ${e.wave} CLEAR`, sub: e.bonus > 0 ? `+${e.bonus} clear bonus` : '', life: 1.4 };
@@ -164,6 +178,7 @@ export class Effects {
     this.texts = this.texts.filter((t) => t.life > 0);
     this.shake = Math.max(0, this.shake - 40 * dt);
     this.hurtFlash = Math.max(0, this.hurtFlash - dt);
+    this.spotlight = Math.max(0, this.spotlight - dt);
     if (this.banner) {
       this.banner.life -= dt;
       if (this.banner.life <= 0) this.banner = null;

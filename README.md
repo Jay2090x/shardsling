@@ -48,6 +48,16 @@ Gespeichert wird `shardsling.tutorialDone` in localStorage (auch beim Übersprin
 Die Touch-Steuerung erscheint nach **Eingabegerät** (`pointer: coarse` bzw. erste echte Touch-Berührung), nicht nach Bildschirmbreite.
 Das Menü zeigt je nach Gerät die passenden Hinweise. Start mit genau einem Klick/Tap (oder Enter/Leertaste).
 
+## Drohne (Spielerfarbe)
+
+Die eigene Drohne hat eine Farbe, die sonst nichts im Spiel nutzt: **Grün `#7dff5a`** (`DRONE_COLOR` in `src/render/fx.ts`)
+mit weißem Kern. Form: runder Körper mit weißer Nase (zeigt in Flugrichtung) und zwei seitlichen Triebwerken mit Flamme,
+dazu ein pulsierender Leuchtring und eine kurze grüne Bewegungsspur. Bei Wellenstart und nach einem verlorenen Leben
+erscheint 1,5 s ein „YOU“-Spotlight (wachsende Ringe + Schrift unter der Drohne). Während der Unverwundbarkeit
+blinkt nur der Körper leicht, Kern, Nase und ein gestrichelter Schildring bleiben voll sichtbar. Auch die Leben-Anzeige
+im HUD ist grün. Nur Rendering, die Simulation ist unverändert. `test/palette.test.ts` prüft, dass keine Kristall-,
+Gegner- oder Seilfarbe im Farbton nah an der Drohne liegt. Vorher/Nachher-Screenshots: `node scripts/drone-shots.mjs <tag> [--spawn]`.
+
 ## Sound (M6)
 
 - Effekte mit **ZzFX** (Frank Force, MIT): Haken, Treffer am Kristall, Schleudern, Zerschlagen (Tonhöhe nach Größe und Kombo),

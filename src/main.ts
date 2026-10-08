@@ -3,7 +3,7 @@ import './style.css';
 import { GameAudio } from './audio/audio';
 import { FixedStepper } from './engine/fixedStep';
 import { InputManager, type Device } from './input/input';
-import { Effects } from './render/fx';
+import { Effects, SPOTLIGHT_TIME } from './render/fx';
 import { Renderer } from './render/renderer';
 import { heuristicInput } from './sim/bot';
 import { SIM_DT } from './sim/constants';
@@ -115,6 +115,7 @@ function startGame(): void {
   state = createGame(newSeed(), 'play');
   fx.clear();
   fx.banner = { text: 'WAVE 1', sub: '', life: 1.4 };
+  fx.spotlight = SPOTLIGHT_TIME;
   stepper.reset();
   pauseReason = null;
   hitstop = 0;

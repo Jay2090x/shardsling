@@ -4,7 +4,7 @@ import { PERK_INFO } from '../perkInfo';
 import { PERK_IDS } from '../sim/types';
 import type { Enemy, GameState, Shard } from '../sim/types';
 import type { TutMark } from '../tutorial';
-import { Effects, TIER_COLORS } from './fx';
+import { DRONE_COLOR, DRONE_RGB, Effects, SPOTLIGHT_TIME, TIER_COLORS } from './fx';
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
@@ -20,6 +20,9 @@ export class Renderer {
   view: View = { scale: 1, offX: 0, offY: 0, dpr: 1 };
   private cssW = 0;
   private cssH = 0;
+  /** smoothed facing of the drone (render only, follows its velocity) */
+  private droneAng = -Math.PI / 2;
+  private lastTime = 0;
 
   constructor(private canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d', { alpha: false });
@@ -216,35 +219,9 @@ export class Renderer {
       }
     }
 
-    // drone
-    const blink = d.invuln > 0 && s.mode === 'play' && Math.floor(time * 12) % 2 === 0;
-    if (s.phase === 'playing' || s.mode === 'attract') {
-      ctx.save();
-      ctx.globalAlpha = blink ? 0.35 : 1;
-      ctx.shadowColor = '#22e5ff';
-      ctx.shadowBlur = glow(16);
-      ctx.strokeStyle = '#22e5ff';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(dx, dy, d.r, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(34,229,255,0.15)';
-      ctx.fill();
-      ctx.shadowBlur = glow(8);
-      ctx.fillStyle = '#e8fdff';
-      ctx.beginPath();
-      ctx.arc(dx, dy, 5, 0, Math.PI * 2);
-      ctx.fill();
-      // orbiting markers
-      for (let i = 0; i < 3; i++) {
-        const a = time * 3 + (i * Math.PI * 2) / 3;
-        ctx.fillStyle = '#22e5ff';
-        ctx.beginPath();
-        ctx.arc(dx + Math.cos(a) * (d.r + 7), dy + Math.sin(a) * (d.r + 7), 2.2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
-    }
+    // drone (drawn above crystals and enemies so it is never hidden)
+    if (s.phase === 'playing' || s.mode === 'attract') this.drawDrone(s, fx, dx, dy, time, glow);
+    else fx.droneTrail = [];
 
     if (marks) this.drawMarks(s, alpha, marks, time, dx, dy);
 
@@ -297,6 +274,171 @@ export class Renderer {
     // ---------- HUD in screen space (minimum font sizes for small iframes/phones)
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (showHud && !marks) this.drawHud(s, fx);
+  }
+
+  /**
+   * The player's drone: green/white (a color nothing else uses), round body with a nose and two thrusters,
+   * a pulsing glow ring and a short motion trail, plus a "YOU" spotlight at wave start / after a hit.
+   */
+  private drawDrone(s: GameState, fx: Effects, dx: number, dy: number, time: number, glow: (px: number) => number): void {
+    const { ctx } = this;
+    const d = s.drone;
+    const r = d.r;
+    const rdt = Math.min(0.1, Math.max(0, time - this.lastTime));
+    this.lastTime = time;
+
+    // facing follows the velocity (smoothed); kept while standing still
+    const sp = Math.hypot(d.vx, d.vy);
+    if (sp > 40) {
+      const target = Math.atan2(d.vy, d.vx);
+      const diff = Math.atan2(Math.sin(target - this.droneAng), Math.cos(target - this.droneAng));
+      this.droneAng += diff * Math.min(1, rdt * 14);
+    }
+    const ang = this.droneAng;
+
+    // motion trail (render positions of the last ~0.2 s)
+    const tr = fx.droneTrail;
+    const last = tr[tr.length - 1];
+    if (last && Math.hypot(last.x - dx, last.y - dy) > 140) tr.length = 0; // teleport (new wave / restart)
+    if (!last || last.x !== dx || last.y !== dy) tr.push({ x: dx, y: dy, t: time });
+    while (tr.length > 0 && (time - tr[0].t > 0.22 || tr.length > 28)) tr.shift();
+    if (tr.length > 1) {
+      ctx.save();
+      ctx.lineCap = 'round';
+      for (let i = 1; i < tr.length; i++) {
+        const k = i / tr.length;
+        ctx.strokeStyle = `rgba(${DRONE_RGB},${k * 0.45})`;
+        ctx.lineWidth = r * 1.1 * k;
+        ctx.beginPath();
+        ctx.moveTo(tr[i - 1].x, tr[i - 1].y);
+        ctx.lineTo(tr[i].x, tr[i].y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    const invuln = d.invuln > 0 && s.mode === 'play';
+    const blink = invuln && Math.floor(time * 12) % 2 === 0;
+    const pulse = 0.5 + 0.5 * Math.sin(time * 5);
+    ctx.save();
+    ctx.translate(dx, dy);
+
+    // soft pulsing glow ring
+    ctx.strokeStyle = `rgba(${DRONE_RGB},${0.22 + pulse * 0.28})`;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = DRONE_COLOR;
+    ctx.shadowBlur = glow(12);
+    ctx.beginPath();
+    ctx.arc(0, 0, r + 8 + pulse * 3, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // shield while invulnerable: a rotating dashed ring that never blinks
+    if (invuln) {
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([7, 6]);
+      ctx.lineDashOffset = -time * 40;
+      ctx.beginPath();
+      ctx.arc(0, 0, r + 15, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.rotate(ang);
+    // thruster flames from the two side pods (longer when moving)
+    const thrust = Math.min(1, sp / 400);
+    const flick = 0.75 + Math.random() * 0.25;
+    const podX = -r * 0.3;
+    const podY = r + 1;
+    for (const side of [-1, 1]) {
+      const fl = (5 + thrust * 16) * flick;
+      ctx.fillStyle = `rgba(${DRONE_RGB},${0.35 + thrust * 0.5})`;
+      ctx.beginPath();
+      ctx.moveTo(podX - 5, side * podY - 3.5);
+      ctx.lineTo(podX - 5 - fl, side * podY);
+      ctx.lineTo(podX - 5, side * podY + 3.5);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // body: dark green disc, thick green rim (blinks softly while invulnerable, never fades out)
+    ctx.globalAlpha = blink ? 0.6 : 1;
+    ctx.shadowColor = DRONE_COLOR;
+    ctx.shadowBlur = glow(16);
+    ctx.fillStyle = 'rgba(30,70,22,0.92)';
+    ctx.strokeStyle = DRONE_COLOR;
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    // thruster pods sticking out on both sides (a silhouette no crystal has)
+    ctx.shadowBlur = glow(6);
+    ctx.fillStyle = '#e9ffe0';
+    ctx.lineWidth = 2;
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(podX, side * podY, 7.5, 4.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    // nose: direction indicator
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(r + 9, 0);
+    ctx.lineTo(r - 2, -6.5);
+    ctx.lineTo(r - 2, 6.5);
+    ctx.closePath();
+    ctx.fill();
+    // bright white core
+    ctx.globalAlpha = 1;
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur = glow(10);
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.42, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // "YOU" spotlight: expanding rings + label (wave start, after losing a life)
+    if (fx.spotlight > 0 && s.mode === 'play') {
+      const k = fx.spotlight / SPOTLIGHT_TIME; // 1 -> 0
+      const fade = Math.min(1, fx.spotlight * 3);
+      ctx.save();
+      ctx.strokeStyle = DRONE_COLOR;
+      ctx.shadowColor = DRONE_COLOR;
+      ctx.shadowBlur = glow(12);
+      for (let i = 0; i < 2; i++) {
+        const g = ((1 - k) * 2.2 + i * 0.5) % 1;
+        ctx.globalAlpha = (1 - g) * 0.8 * fade;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(dx, dy, r + 10 + g * 70, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      // fixed bracket ring, then the label
+      ctx.globalAlpha = fade;
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 4; i++) {
+        const a = (i * Math.PI) / 2 + time * 1.5;
+        ctx.beginPath();
+        ctx.arc(dx, dy, r + 20, a - 0.4, a + 0.4);
+        ctx.stroke();
+      }
+      const textPx = Math.max(16 / this.view.scale, 28);
+      ctx.font = `900 ${textPx}px Orbitron, system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = DRONE_COLOR;
+      const off = r + 26 + textPx * 0.6;
+      // below the drone (the wave banner sits above the arena centre), above only near the bottom wall
+      const above = dy + off + textPx > ARENA_H;
+      const tw = ctx.measureText('YOU').width / 2;
+      const lx = Math.min(ARENA_W - tw - 8, Math.max(tw + 8, dx));
+      ctx.fillText('YOU', lx, above ? dy - off : dy + off);
+      ctx.restore();
+    }
   }
 
   /** Tutorial highlights: pulsing ring + label around a shard, the drone or a fixed spot. */
@@ -610,11 +752,11 @@ export class Renderer {
     for (let i = 0; i < slots; i++) {
       ctx.beginPath();
       ctx.arc(lx + i * lr * 3, top + big * 1.12 + small * 0.5, lr, 0, Math.PI * 2);
-      ctx.strokeStyle = i < s.lives ? '#22e5ff' : 'rgba(108,138,150,0.4)';
+      ctx.strokeStyle = i < s.lives ? DRONE_COLOR : 'rgba(108,138,150,0.4)';
       ctx.lineWidth = 2;
       ctx.stroke();
       if (i < s.lives) {
-        ctx.fillStyle = 'rgba(34,229,255,0.35)';
+        ctx.fillStyle = `rgba(${DRONE_RGB},0.35)`;
         ctx.fill();
       }
     }

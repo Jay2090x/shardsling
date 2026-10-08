@@ -2,6 +2,7 @@ import type { Device } from './input/input';
 import { SIM_DT, TETHER } from './sim/constants';
 import { makeShard, TUTORIAL_LAYOUT } from './sim/sim';
 import type { GameState } from './sim/types';
+import { DRONE_COLOR } from './render/fx';
 import { ARENA_H, ARENA_W } from './sim/constants';
 
 export type TutStep = 'goal' | 'move' | 'hook' | 'fling' | 'done';
@@ -187,7 +188,7 @@ export class Tutorial {
     const target = s.shards.find((x) => x.id === this.targetId);
     const out: TutMark[] = [];
     if (this.step === 'goal') {
-      out.push({ id: -1, label: 'YOU', color: '#22e5ff' });
+      out.push({ id: -1, label: 'YOU', color: DRONE_COLOR });
       if (target) out.push({ id: target.id, label: 'SMASH', color: '#ff2bd6' });
     } else if (this.step === 'move') {
       out.push({ x: L.moveTarget.x, y: L.moveTarget.y, r: L.moveRadius, label: 'FLY HERE', color: '#ffe14d', dashed: true });
