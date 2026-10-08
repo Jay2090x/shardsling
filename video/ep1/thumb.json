@@ -1,0 +1,50 @@
+[
+ {
+  "id": "thumb",
+  "kind": "thumb",
+  "dur": 0.4,
+  "run": {
+   "file": "/ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 5079201,
+   "start": 87.25
+  },
+  "data": {
+   "vignette": true,
+   "crop": {
+    "sx": 10,
+    "sy": 96,
+    "z": 1.5
+   },
+   "lines": [
+    {
+     "text": "NO GUN.",
+     "color": "#ff2bd6",
+     "size": 200,
+     "x": 70,
+     "y": 270
+    },
+    {
+     "text": "JUST A",
+     "color": "#22e5ff",
+     "size": 110,
+     "x": 80,
+     "y": 480
+    },
+    {
+     "text": "ROPE.",
+     "color": "#22e5ff",
+     "size": 150,
+     "x": 75,
+     "y": 620
+    },
+    {
+     "text": "GEN 0 → GEN 183",
+     "color": "#ffe14d",
+     "size": 70,
+     "x": 80,
+     "y": 900
+    }
+   ]
+  }
+ }
+]

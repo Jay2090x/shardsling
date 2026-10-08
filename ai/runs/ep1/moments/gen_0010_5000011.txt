@@ -1,0 +1,13 @@
+15.42 HURT lives 2
+23.62 FIRST THROW HIT
+38.89 combo x5 score 760
+43.05 combo x5 score 1100
+56.42 WAVE 2
+60.99 HURT lives 1
+79.37 combo x5 score 2050
+79.87 combo x10 score 3360
+80.04 combo x15 score 4260
+82.12 combo x20 score 5060
+105.37 HURT lives 0
+105.37 GAMEOVER 5840
+{"seed":5000011,"score":5840,"wave":2,"seconds":105.36666666666666,"breaks":53,"maxCombo":22,"livesLeft":0,"flings":619,"hitFlings":34,"hookTime":66.525,"enemyKills":0,"bossKills":0,"dead":true}

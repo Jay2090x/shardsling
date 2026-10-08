@@ -1,0 +1,865 @@
+[
+ {
+  "id": "01_cold",
+  "kind": "game",
+  "dur": 9,
+  "layout": "full",
+  "music": {
+   "prog": "A",
+   "drums": true,
+   "vol": 0.9
+  },
+  "fadeIn": 0.3,
+  "run": {
+   "file": "/ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 5079201,
+   "start": 86,
+   "label": "TRAINED AI",
+   "sub": "generation 183"
+  },
+  "captions": [
+   {
+    "t0": 0.3,
+    "t1": 4.2,
+    "text": "This spaceship has no gun."
+   },
+   {
+    "t0": 4.5,
+    "t1": 8.8,
+    "text": "This AI learned to play it anyway.",
+    "sub": "every clip in this video is a real replay"
+   }
+  ]
+ },
+ {
+  "id": "02_title",
+  "kind": "title",
+  "dur": 5,
+  "music": {
+   "prog": "A",
+   "drums": true,
+   "vol": 0.9
+  },
+  "fadeOut": 0.4,
+  "accents": [
+   {
+    "t": 0.05,
+    "kind": "whoosh"
+   }
+  ],
+  "data": {
+   "lines": [
+    "I GAVE AN AI",
+    "A SPACESHIP",
+    "WITH NO GUN"
+   ],
+   "sub": "a tiny neural network, trained from scratch by evolution"
+  },
+  "bgRun": {
+   "file": "/ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 5079201,
+   "start": 40,
+   "speed": 0.6
+  }
+ },
+ {
+  "id": "03_rules",
+  "kind": "game",
+  "dur": 36,
+  "layout": "full",
+  "music": {
+   "prog": "B",
+   "drums": false,
+   "hats": true,
+   "vol": 0.85
+  },
+  "fadeIn": 0.4,
+  "run": {
+   "file": "/ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 5079201,
+   "start": 2,
+   "speed": [
+    {
+     "t": 0,
+     "speed": 0.5
+    },
+    {
+     "t": 12,
+     "speed": 1
+    }
+   ],
+   "label": "TRAINED AI · GENERATION 183",
+   "sub": "real replay · game the AI never saw in training"
+  },
+  "marks": [
+   {
+    "t0": 0.3,
+    "t1": 4.5,
+    "target": "drone",
+    "label": "AI",
+    "color": "#7dff5a"
+   },
+   {
+    "t0": 5,
+    "t1": 9.8,
+    "target": "held",
+    "color": "#ffe14d"
+   }
+  ],
+  "captions": [
+   {
+    "t0": 0.3,
+    "t1": 4.5,
+    "text": "The green ship is the AI. It can move. That is all, plus one button:"
+   },
+   {
+    "t0": 4.8,
+    "t1": 9.8,
+    "text": "Hold the hook: a harpoon grabs the nearest crystal and swings it around on a rope."
+   },
+   {
+    "t0": 10,
+    "t1": 14.5,
+    "text": "Let go: the crystal flies off in a straight line."
+   },
+   {
+    "t0": 14.8,
+    "t1": 20.6,
+    "text": "If it hits another crystal hard enough, that crystal shatters. Every fragment is new ammo."
+   },
+   {
+    "t0": 21,
+    "t1": 25.4,
+    "text": "Clear the field and the next wave arrives."
+   },
+   {
+    "t0": 25.7,
+    "t1": 30.2,
+    "text": "Smash fast to build a combo: up to x10 points per smash."
+   },
+   {
+    "t0": 30.5,
+    "t1": 35.8,
+    "text": "Touch a drifting crystal or an enemy and you lose a life. Three lives."
+   }
+  ]
+ },
+ {
+  "id": "04_net",
+  "kind": "net",
+  "dur": 24,
+  "music": {
+   "prog": "B",
+   "bass": false,
+   "drums": false,
+   "vol": 0.8
+  },
+  "fadeIn": 0.4,
+  "run": {
+   "file": "/ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 5079201,
+   "start": 24
+  },
+  "captions": [
+   {
+    "t0": 0.3,
+    "t1": 6,
+    "text": "The AI is a tiny neural network. This is all of it, live.",
+    "size": 46
+   },
+   {
+    "t0": 6.3,
+    "t1": 13,
+    "text": "It sees 24 numbers: where it is and how fast, the nearest crystal, its rope, an 8-way danger radar and a 'laser' that says if the swinging crystal is flying at a target.",
+    "size": 42
+   },
+   {
+    "t0": 13.3,
+    "t1": 18.4,
+    "text": "It answers with 10 numbers: 9 ways to move (or stop) and hook on/off.",
+    "size": 46
+   },
+   {
+    "t0": 18.7,
+    "t1": 23.7,
+    "text": "No pretrained model, no examples of how to play. It starts as random numbers.",
+    "size": 46
+   }
+  ]
+ },
+ {
+  "id": "05_evolution",
+  "kind": "card",
+  "dur": 17,
+  "music": {
+   "prog": "B",
+   "bass": false,
+   "drums": false,
+   "vol": 0.8
+  },
+  "bgRun": {
+   "file": "/ai/runs/ep1/gen0_population.json",
+   "member": 10,
+   "seed": 5000011,
+   "start": 5
+  },
+  "data": {
+   "heading": "HOW IT LEARNS: EVOLUTION",
+   "bullets": [
+    {
+     "t": 0.8,
+     "text": "150 random brains each play 4 games in the real game code."
+    },
+    {
+     "t": 3.6,
+     "text": "Fitness = points + 4 per second survived."
+    },
+    {
+     "t": 6.4,
+     "text": "The best 8 are kept. Everyone else is replaced by mixed and slightly mutated copies of good brains."
+    },
+    {
+     "t": 10,
+     "text": "Repeat, with new games every generation."
+    },
+    {
+     "t": 12.6,
+     "text": "This run: 213 generations · 127,800 training games · 45 minutes on an 8-core computer.",
+     "color": "#ffe14d"
+    }
+   ]
+  }
+ },
+ {
+  "id": "06_gen0grid",
+  "kind": "grid",
+  "dur": 14,
+  "cols": 4,
+  "rows": 3,
+  "music": {
+   "prog": "A",
+   "bass": false,
+   "drums": false,
+   "vol": 0.7
+  },
+  "audio": "none",
+  "data": {
+   "title": "GENERATION 0: 12 OF 150 RANDOM BRAINS",
+   "color": "#22e5ff"
+  },
+  "runs": [
+   {
+    "file": "/ai/runs/ep1/gen0_population.json",
+    "member": 0,
+    "seed": 5000011,
+    "start": 15,
+    "speed": 2,
+    "label": "#1"
+   },
+   {
+    "file": "/ai/runs/ep1/gen0_population.json",
+    "member": 10,
+    "seed": 5000011,
+    "start": 15,
+    "speed": 2,
+    "label": "#11"
+   },
+   {
+    "file": "/ai/runs/ep1/gen0_population.json",
+    "member": 25,
+    "seed": 5000011,
+    "start": 15,
+    "speed": 2,
+    "label": "#26"
+   },
+   {
+    "file": "/ai/runs/ep1/gen0_population.json",
+    "member": 40,
+    "seed": 5000011,
+    "start": 15,
+    "speed": 2,
+    "label": "#41"
+   },
+   {
+    "file": "/ai/runs/ep1/gen0_population.json",
+    "member": 55,
+    "seed": 5000011,
+    "start": 15,
+    "speed": 2,
+    "label": "#56"
+   },
+   {
+    "file": "/ai/runs/ep1/gen0_population.json",
+    "member": 70,
+    "seed": 5000011,
+    "start": 15,
+    "speed": 2,
+    "label": "#71"
+   },
+   {
+    "file": "/ai/runs/ep1/gen0_population.json",
+    "member": 75,
+    "seed": 5000011,
+    "start": 15,
+    "speed": 2,
+    "label": "#76"
+   },
+   {
+    "file": "/ai/runs/ep1/gen0_population.json",
+    "member": 90,
+    "seed": 5000011,
+    "start": 15,
+    "speed": 2,
+    "label": "#91"
+   },
+   {
+    "file": "/ai/runs/ep1/gen0_population.json",
+    "member": 105,
+    "seed": 5000011,
+    "start": 15,
+    "speed": 2,
+    "label": "#106"
+   },
+   {
+    "file": "/ai/runs/ep1/gen0_population.json",
+    "member": 120,
+    "seed": 5000011,
+    "start": 15,
+    "speed": 2,
+    "label": "#121"
+   },
+   {
+    "file": "/ai/runs/ep1/gen0_population.json",
+    "member": 135,
+    "seed": 5000011,
+    "start": 15,
+    "speed": 2,
+    "label": "#136"
+   },
+   {
+    "file": "/ai/runs/ep1/gen0_population.json",
+    "member": 149,
+    "seed": 5000011,
+    "start": 15,
+    "speed": 2,
+    "label": "#150"
+   }
+  ],
+  "captions": [
+   {
+    "t0": 6.5,
+    "t1": 13.7,
+    "text": "Half of them never scored a single point.",
+    "sub": "75 of 150 scored 0 in all 4 games"
+   }
+  ]
+ },
+ {
+  "id": "07_wall",
+  "kind": "game",
+  "dur": 10,
+  "layout": "full",
+  "music": {
+   "prog": "A",
+   "bass": false,
+   "drums": false,
+   "vol": 0.7
+  },
+  "run": {
+   "file": "/ai/runs/ep1/gen0_population.json",
+   "member": 75,
+   "seed": 5000011,
+   "start": 120.5,
+   "label": "GENERATION 0",
+   "sub": "random brain #76 of 150",
+   "color": "#ff3b5c"
+  },
+  "marks": [
+   {
+    "t0": 0.3,
+    "t1": 9.7,
+    "target": "drone",
+    "color": "#ff3b5c"
+   }
+  ],
+  "captions": [
+   {
+    "t0": 0.3,
+    "t1": 9.7,
+    "text": "Random brain #76 drives into the wall and stays there.",
+    "sub": "30 test games: 99% of its time at the edge, 5 points on average"
+   }
+  ]
+ },
+ {
+  "id": "08_selfhit",
+  "kind": "game",
+  "dur": 10,
+  "layout": "full",
+  "music": {
+   "prog": "A",
+   "bass": false,
+   "drums": false,
+   "vol": 0.7
+  },
+  "run": {
+   "file": "/ai/runs/ep1/gen0_population.json",
+   "member": 149,
+   "seed": 5000011,
+   "start": 0,
+   "label": "GENERATION 0",
+   "sub": "random brain #150 of 150",
+   "color": "#ff3b5c"
+  },
+  "captions": [
+   {
+    "t0": 0.3,
+    "t1": 9.7,
+    "text": "Random brain #150 throws crystals around and keeps hitting itself.",
+    "sub": "30 test games: 55 of its 90 lost lives came from its own crystals"
+   }
+  ]
+ },
+ {
+  "id": "09_neverletgo",
+  "kind": "game",
+  "dur": 10,
+  "layout": "full",
+  "music": {
+   "prog": "A",
+   "bass": false,
+   "drums": false,
+   "vol": 0.7
+  },
+  "run": {
+   "file": "/ai/runs/ep1/gen0_population.json",
+   "member": 0,
+   "seed": 5000011,
+   "start": 14,
+   "label": "GENERATION 0",
+   "sub": "the best random brain",
+   "color": "#ffe14d"
+  },
+  "marks": [
+   {
+    "t0": 3,
+    "t1": 8,
+    "target": "held",
+    "color": "#ffe14d"
+   }
+  ],
+  "captions": [
+   {
+    "t0": 0.3,
+    "t1": 9.7,
+    "text": "The best random brain grabs a crystal and never lets go. It scores by ramming things with it.",
+    "sub": "hook held 99% of the time · 411 of its 414 hits without letting go"
+   }
+  ]
+ },
+ {
+  "id": "10_chart",
+  "kind": "chart",
+  "dur": 16,
+  "music": {
+   "prog": "A",
+   "drums": true,
+   "vol": 0.75
+  },
+  "data": {
+   "csv": "/ai/runs/ep1/stats.csv",
+   "key": "bench_mean_score",
+   "title": "AVERAGE TEST SCORE PER GENERATION",
+   "ylabel": "POINTS (10 TEST GAMES)",
+   "marks": [
+    {
+     "gen": 10,
+     "text": "gen 10"
+    },
+    {
+     "gen": 40,
+     "text": "gen 40"
+    },
+    {
+     "gen": 100,
+     "text": "gen 100"
+    },
+    {
+     "gen": 183,
+     "text": "gen 183",
+     "color": "#7dff5a"
+    }
+   ]
+  },
+  "captions": [
+   {
+    "t0": 9.5,
+    "t1": 15.7,
+    "text": "Generation 0: 1,212 points. Generation 183: 39,349.",
+    "sub": "same 10 test games for every generation, never used for training"
+   }
+  ]
+ },
+ {
+  "id": "11_gen10",
+  "kind": "game",
+  "dur": 14,
+  "layout": "full",
+  "music": {
+   "prog": "A",
+   "drums": true,
+   "vol": 0.75
+  },
+  "run": {
+   "file": "/ai/runs/ep1/checkpoints/gen_0010.json",
+   "seed": 5000011,
+   "start": 76,
+   "speed": [
+    {
+     "t": 0,
+     "speed": 0.5
+    },
+    {
+     "t": 5,
+     "speed": 1
+    }
+   ],
+   "label": "GENERATION 10",
+   "color": "#ff9a3b"
+  },
+  "captions": [
+   {
+    "t0": 0.3,
+    "t1": 6.5,
+    "text": "Generation 10 found its first strategy: spam.",
+    "sub": "it grabs and lets go 364 times a minute"
+   },
+   {
+    "t0": 6.8,
+    "t1": 13.7,
+    "text": "Lots of throws, few hits.",
+    "sub": "only 4% of its fast throws broke anything (30 test games)"
+   }
+  ]
+ },
+ {
+  "id": "12_gen40",
+  "kind": "game",
+  "dur": 22,
+  "layout": "brain",
+  "music": {
+   "prog": "A",
+   "drums": true,
+   "vol": 0.75
+  },
+  "run": {
+   "file": "/ai/runs/ep1/checkpoints/gen_0040.json",
+   "seed": 5000011,
+   "start": 64,
+   "speed": [
+    {
+     "t": 0,
+     "speed": 0.5
+    },
+    {
+     "t": 8,
+     "speed": 1
+    }
+   ],
+   "label": "GENERATION 40",
+   "sub": "brain view: real activations",
+   "color": "#b45cff"
+  },
+  "marks": [
+   {
+    "t0": 1,
+    "t1": 7,
+    "target": "held",
+    "label": "laser = is this crystal flying at a target?",
+    "color": "#ffe14d"
+   }
+  ],
+  "captions": [
+   {
+    "t0": 0.3,
+    "t1": 7.4,
+    "text": "Remember the 'laser' input? At first the AI ignored it.",
+    "sub": "generation 1 let go with the laser on target 25% of the time, about chance (33%)"
+   },
+   {
+    "t0": 7.7,
+    "t1": 14.6,
+    "text": "Generation 40: 80% of its releases happen while the laser is on target.",
+    "sub": "the laser is on target only 15% of the time"
+   },
+   {
+    "t0": 14.9,
+    "t1": 21.7,
+    "text": "By generation 100 it was 99%. It learned to wait for the shot."
+   }
+  ]
+ },
+ {
+  "id": "13_best_brain",
+  "kind": "game",
+  "dur": 20,
+  "layout": "brain",
+  "music": {
+   "prog": "A",
+   "drums": true,
+   "vol": 0.9
+  },
+  "run": {
+   "file": "/ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 5079201,
+   "start": 23,
+   "speed": [
+    {
+     "t": 0,
+     "speed": 0.5
+    },
+    {
+     "t": 10,
+     "speed": 1
+    }
+   ],
+   "label": "GENERATION 183",
+   "sub": "brain view: real activations",
+   "color": "#7dff5a"
+  },
+  "captions": [
+   {
+    "t0": 0.3,
+    "t1": 6.8,
+    "text": "It also learned to smash with the crystal still on the rope.",
+    "sub": "30% of its hits happen without letting go (532 of 1,790, 30 test games)"
+   },
+   {
+    "t0": 7.1,
+    "t1": 13.4,
+    "text": "And it still throws a lot, but now it aims.",
+    "sub": "251 releases a minute · 9% of fast throws hit (generation 10: 4%)"
+   },
+   {
+    "t0": 13.7,
+    "t1": 19.7,
+    "text": "Each hit makes fragments, the fragments become ammo, and the chain keeps going."
+   }
+  ]
+ },
+ {
+  "id": "14_weakness",
+  "kind": "game",
+  "dur": 14,
+  "layout": "full",
+  "music": {
+   "prog": "A",
+   "bass": false,
+   "drums": false,
+   "vol": 0.7
+  },
+  "run": {
+   "file": "/ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 5079201,
+   "start": 127,
+   "speed": [
+    {
+     "t": 0,
+     "speed": 0.5
+    },
+    {
+     "t": 7,
+     "speed": 1
+    }
+   ],
+   "label": "GENERATION 183",
+   "color": "#ff3b5c"
+  },
+  "marks": [
+   {
+    "t0": 0.3,
+    "t1": 6,
+    "target": "drone",
+    "color": "#ff3b5c"
+   }
+  ],
+  "captions": [
+   {
+    "t0": 0.3,
+    "t1": 13.7,
+    "text": "Its weakness: it never really learned to dodge.",
+    "sub": "30 test games: 59 of 88 lost lives came from drifting crystals, 20 from enemies"
+   }
+  ]
+ },
+ {
+  "id": "15_split",
+  "kind": "split",
+  "dur": 40,
+  "music": {
+   "prog": "A",
+   "drums": true,
+   "vol": 0.75
+  },
+  "runs": [
+   {
+    "file": "/ai/runs/ep1/checkpoints/gen_0001.json",
+    "seed": 5079201,
+    "start": 0,
+    "speed": 3,
+    "label": "GENERATION 1",
+    "color": "#ff3b5c"
+   },
+   {
+    "file": "/ai/runs/ep1/checkpoints/gen_0183.json",
+    "seed": 5079201,
+    "start": 0,
+    "speed": 3,
+    "label": "GENERATION 183",
+    "color": "#7dff5a"
+   }
+  ],
+  "captions": [
+   {
+    "t0": 0.5,
+    "t1": 6,
+    "text": "Same game, same seed, same starting crystals."
+   },
+   {
+    "t0": 12,
+    "t1": 18,
+    "text": "Generation 1 is still stuck in wave 2."
+   },
+   {
+    "t0": 33,
+    "t1": 39.7,
+    "text": "Generation 1: game over at 1,500 points. Generation 183 keeps going."
+   }
+  ]
+ },
+ {
+  "id": "16_best_run",
+  "kind": "game",
+  "dur": 70,
+  "layout": "full",
+  "music": {
+   "prog": "A",
+   "drums": true,
+   "boss": true,
+   "vol": 0.9
+  },
+  "fadeOut": 0.6,
+  "run": {
+   "file": "/ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 5079201,
+   "start": 60,
+   "speed": [
+    {
+     "t": 0,
+     "speed": 1
+    },
+    {
+     "t": 47,
+     "speed": 2
+    }
+   ],
+   "label": "BEST TEST GAME",
+   "sub": "generation 183 · seed it never trained on"
+  },
+  "captions": [
+   {
+    "t0": 0.5,
+    "t1": 5.5,
+    "text": "Its best test game, picking up in wave 4."
+   },
+   {
+    "t0": 20.6,
+    "t1": 26.5,
+    "text": "Enemies: hunters chase the ship, and from wave 5 prisms shoot at it."
+   },
+   {
+    "t0": 33,
+    "t1": 39,
+    "text": "This chain went to 110 smashes in a row.",
+    "sub": "the counter on screen stops at x10, the chain kept going"
+   },
+   {
+    "t0": 55.2,
+    "t1": 59,
+    "text": "Wave 7."
+   },
+   {
+    "t0": 66.4,
+    "t1": 69.7,
+    "text": "Game over: 113,150 points, wave 7, 12 enemies smashed.",
+    "color": "#ffe14d"
+   }
+  ]
+ },
+ {
+  "id": "17_learned",
+  "kind": "card",
+  "dur": 15,
+  "music": {
+   "prog": "B",
+   "bass": false,
+   "drums": false,
+   "vol": 0.8
+  },
+  "fadeIn": 0.4,
+  "bgRun": {
+   "file": "/ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 5079201,
+   "start": 60,
+   "speed": 0.5
+  },
+  "data": {
+   "heading": "WHAT IT LEARNED IN 213 GENERATIONS",
+   "bullets": [
+    {
+     "t": 0.8,
+     "text": "Grab, swing, and let go when the laser is on a target."
+    },
+    {
+     "t": 3.4,
+     "text": "Throw a lot, and keep chains going with the fragments."
+    },
+    {
+     "t": 6,
+     "text": "Smash with the crystal still on the rope."
+    },
+    {
+     "t": 8.6,
+     "text": "Dodging: not yet.",
+     "color": "#ff3b5c"
+    },
+    {
+     "t": 11.2,
+     "text": "What should it learn next? Tell me in the comments.",
+     "color": "#ffe14d"
+    }
+   ]
+  }
+ },
+ {
+  "id": "18_end",
+  "kind": "end",
+  "dur": 16,
+  "music": {
+   "prog": "B",
+   "bass": false,
+   "drums": false,
+   "vol": 0.8
+  },
+  "fadeIn": 0.5,
+  "bgRun": {
+   "file": "/ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 5079201,
+   "start": 90,
+   "speed": 0.5
+  },
+  "data": {
+   "score": "AI best test game: 113,150 points (generation 183)"
+  }
+ }
+]

@@ -1,0 +1,133 @@
+2.62 FIRST THROW HIT
+6.19 combo x5 score 880
+7.85 combo x10 score 1810
+9.59 combo x15 score 2810
+10.26 combo x20 score 3810
+12.49 combo x25 score 4810
+14.54 combo x30 score 5410
+15.71 combo x35 score 6210
+18.42 combo x5 score 6730
+18.79 CLEAR wave 1
+18.82 combo x10 score 7190
+20.20 WAVE 2
+20.52 combo x15 score 8090
+20.62 combo x20 score 9390
+24.48 combo x5 score 10720
+24.86 combo x10 score 11700
+25.02 combo x15 score 12800
+25.65 combo x20 score 13900
+26.87 combo x25 score 14400
+28.23 combo x30 score 15000
+29.27 combo x35 score 15900
+29.41 combo x40 score 16600
+31.08 combo x45 score 17400
+31.49 CLEAR wave 2
+31.84 combo x50 score 18000
+32.90 WAVE 3
+33.41 combo x55 score 20100
+34.02 combo x60 score 21300
+34.70 combo x65 score 22300
+39.52 combo x5 score 22860
+41.07 combo x10 score 23680
+41.26 kill hunter
+43.52 combo x15 score 26180
+43.96 combo x20 score 27280
+44.82 combo x25 score 27880
+45.26 combo x30 score 28580
+48.23 combo x5 score 29150
+54.65 combo x5 score 29630
+55.44 combo x10 score 30270
+59.12 CLEAR wave 3
+59.33 combo x5 score 30930
+60.52 WAVE 4
+64.95 combo x5 score 31730
+65.03 kill hunter
+66.07 combo x10 score 33450
+66.73 combo x15 score 34250
+67.16 combo x20 score 35750
+67.98 combo x25 score 36650
+70.48 combo x5 score 37770
+72.49 combo x10 score 38380
+73.08 combo x15 score 39380
+73.61 combo x20 score 39880
+77.55 combo x5 score 40930
+77.83 combo x10 score 41390
+78.95 CLEAR wave 4
+79.75 combo x15 score 42490
+80.36 WAVE 5
+80.98 combo x20 score 44290
+82.68 kill prism
+82.68 combo x25 score 46790
+85.03 combo x30 score 48090
+86.23 combo x35 score 48590
+86.68 kill hunter
+86.86 combo x40 score 50890
+87.61 combo x45 score 52790
+87.98 combo x50 score 53390
+88.02 kill hunter
+88.43 combo x55 score 56090
+90.02 combo x60 score 57290
+90.44 combo x65 score 58690
+90.78 combo x70 score 59690
+91.68 combo x75 score 60490
+92.35 combo x80 score 61390
+92.55 combo x85 score 62390
+93.04 combo x90 score 63390
+94.58 combo x95 score 64190
+95.58 combo x100 score 64890
+96.18 combo x105 score 65390
+97.20 combo x110 score 66090
+99.53 combo x5 score 66550
+99.53 CLEAR wave 5
+100.80 combo x10 score 67190
+100.94 WAVE 6
+102.03 combo x15 score 68190
+102.41 kill prism
+102.42 combo x20 score 70790
+102.80 kill hunter
+103.46 combo x30 score 74290
+103.90 combo x35 score 76190
+104.48 combo x40 score 76990
+104.95 combo x45 score 77790
+106.10 combo x50 score 79690
+106.13 combo x55 score 80990
+106.98 combo x60 score 81890
+107.05 kill hunter
+107.33 combo x65 score 83890
+108.03 combo x70 score 84690
+109.41 combo x75 score 85290
+109.63 combo x80 score 86390
+110.23 combo x85 score 87090
+111.29 combo x90 score 87690
+112.67 combo x95 score 88990
+113.39 combo x100 score 89890
+114.11 combo x105 score 90590
+117.62 combo x5 score 91040
+118.80 combo x10 score 91920
+119.93 combo x15 score 92320
+122.00 combo x5 score 92640
+122.21 CLEAR wave 6
+122.25 combo x10 score 93700
+122.83 combo x15 score 94300
+123.62 WAVE 7
+124.33 combo x20 score 96300
+126.10 combo x25 score 97300
+126.61 combo x30 score 98100
+127.32 combo x35 score 99700
+127.63 combo x40 score 100200
+128.07 combo x45 score 101500
+128.08 kill prism
+128.66 kill hunter
+128.95 combo x55 score 107100
+129.06 kill hunter
+129.23 combo x60 score 108900
+129.47 HURT lives 2
+133.16 combo x5 score 109510
+134.23 HURT lives 1
+140.08 kill hunter
+143.93 combo x5 score 110690
+144.33 combo x10 score 111150
+144.87 combo x15 score 112350
+146.25 HURT lives 0
+146.25 GAMEOVER 113150
+{"seed":5079201,"score":113150,"wave":7,"seconds":146.25,"breaks":566,"maxCombo":110,"livesLeft":0,"flings":720,"hitFlings":220,"hookTime":85.225,"enemyKills":12,"bossKills":0,"dead":true}

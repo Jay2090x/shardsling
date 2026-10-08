@@ -1,0 +1,7 @@
+56.42 WAVE 2
+65.39 HURT lives 2
+110.38 HURT lives 1
+112.83 WAVE 3
+131.73 HURT lives 0
+131.73 GAMEOVER 740
+{"seed":5000011,"score":740,"wave":3,"seconds":131.725,"breaks":13,"maxCombo":4,"livesLeft":0,"flings":0,"hitFlings":0,"hookTime":130.9,"enemyKills":0,"bossKills":0,"dead":true}

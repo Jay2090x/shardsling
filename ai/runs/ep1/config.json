@@ -1,0 +1,30 @@
+{
+  "GENS": 300,
+  "POP": 150,
+  "SEED": 2026,
+  "TRAIN_SEEDS": 4,
+  "TRAIN_SECONDS": 120,
+  "BENCH_SEEDS": [
+    900001,
+    907920,
+    915839,
+    923758,
+    931677,
+    939596,
+    947515,
+    955434,
+    963353,
+    971272
+  ],
+  "BENCH_SECONDS": 180,
+  "ELITE": 8,
+  "TOURNAMENT": 5,
+  "MUT_RATE": 0.08,
+  "MUT_SIGMA": 0.35,
+  "N_IN": 24,
+  "N_HID": 16,
+  "N_OUT": 10,
+  "N_WEIGHTS": 570,
+  "DECIDE_EVERY": 2,
+  "fitness": "score + 4 * seconds survived, mean over 3 seeds"
+}

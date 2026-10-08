@@ -1,0 +1,5 @@
+4.51 HURT lives 2
+16.20 HURT lives 1
+40.28 HURT lives 0
+40.28 GAMEOVER 0
+{"seed":5000011,"score":0,"wave":1,"seconds":40.28333333333333,"breaks":0,"maxCombo":0,"livesLeft":0,"flings":26,"hitFlings":0,"hookTime":0.7833333333333333,"enemyKills":0,"bossKills":0,"dead":true}

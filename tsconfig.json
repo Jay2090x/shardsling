@@ -13,5 +13,5 @@
     "noEmit": true,
     "types": ["vite/client", "node"]
   },
-  "include": ["src", "test", "scripts/*.ts"]
+  "include": ["src", "test", "scripts/*.ts", "ai/*.ts", "video/director/*.ts"]
 }

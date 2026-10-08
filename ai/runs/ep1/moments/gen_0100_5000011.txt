@@ -1,0 +1,41 @@
+7.98 FIRST THROW HIT
+18.81 combo x5 score 1000
+23.60 combo x5 score 1330
+26.72 combo x5 score 1880
+33.56 combo x5 score 2240
+36.89 CLEAR wave 1
+38.26 combo x5 score 2710
+38.30 WAVE 2
+38.83 combo x10 score 3510
+41.97 HURT lives 2
+46.02 combo x5 score 4310
+47.15 combo x10 score 5080
+54.70 combo x5 score 6240
+59.07 combo x5 score 7020
+59.07 CLEAR wave 2
+60.47 WAVE 3
+62.37 kill hunter
+68.03 combo x5 score 9250
+68.34 combo x10 score 9760
+69.59 combo x15 score 11160
+70.28 combo x20 score 11660
+71.06 combo x25 score 13360
+71.57 combo x30 score 14160
+71.68 HURT lives 1
+72.41 combo x35 score 14960
+75.13 combo x5 score 15280
+76.40 combo x10 score 15890
+77.68 combo x15 score 16490
+80.59 combo x5 score 16800
+81.89 combo x10 score 17280
+84.48 combo x15 score 17880
+86.51 CLEAR wave 3
+87.92 WAVE 4
+88.42 combo x5 score 18360
+91.30 kill hunter
+92.48 combo x5 score 19540
+93.51 combo x10 score 20660
+98.35 combo x5 score 21380
+98.62 HURT lives 0
+98.62 GAMEOVER 21950
+{"seed":5000011,"score":21950,"wave":4,"seconds":98.61666666666666,"breaks":188,"maxCombo":35,"livesLeft":0,"flings":366,"hitFlings":91,"hookTime":68.05,"enemyKills":2,"bossKills":0,"dead":true}

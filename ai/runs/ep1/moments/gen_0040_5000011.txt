@@ -1,0 +1,73 @@
+17.07 FIRST THROW HIT
+18.94 combo x5 score 590
+25.40 combo x5 score 920
+28.81 combo x5 score 1410
+31.48 combo x5 score 1640
+32.83 combo x10 score 2180
+56.42 WAVE 2
+59.32 combo x5 score 3220
+60.78 combo x10 score 4040
+66.39 combo x5 score 5300
+67.75 combo x10 score 6160
+69.72 combo x15 score 6760
+81.11 combo x5 score 7490
+81.71 combo x10 score 8190
+84.93 CLEAR wave 2
+85.15 combo x5 score 8510
+86.33 WAVE 3
+87.74 combo x10 score 9310
+87.80 combo x15 score 9910
+88.00 kill hunter
+101.01 combo x5 score 12880
+107.38 combo x5 score 13880
+109.28 combo x5 score 14090
+112.28 combo x5 score 14590
+112.52 combo x10 score 15240
+114.98 combo x15 score 15940
+119.49 combo x5 score 16630
+124.88 combo x5 score 16860
+126.86 combo x10 score 17320
+128.31 combo x15 score 18220
+142.75 WAVE 4
+167.65 combo x5 score 19450
+169.68 combo x10 score 19870
+176.78 combo x5 score 20200
+177.48 combo x10 score 21210
+184.80 HURT lives 3
+190.26 kill hunter
+194.60 combo x5 score 22320
+199.17 WAVE 5
+200.79 HURT lives 2
+203.63 combo x5 score 22710
+204.05 kill prism
+204.47 combo x10 score 24590
+204.67 HURT lives 1
+204.92 combo x15 score 26490
+206.88 combo x20 score 27890
+207.02 combo x25 score 28790
+207.86 combo x30 score 29990
+208.02 combo x35 score 30590
+209.50 kill hunter
+209.50 combo x40 score 32690
+209.84 combo x45 score 33590
+215.29 combo x5 score 34770
+216.37 combo x10 score 35820
+217.07 combo x15 score 37320
+217.34 combo x20 score 38020
+227.34 combo x5 score 38810
+233.92 kill hunter
+234.54 combo x5 score 39630
+235.04 combo x10 score 40250
+235.49 combo x15 score 40850
+238.34 combo x20 score 42150
+238.54 combo x25 score 43050
+240.17 combo x30 score 43750
+241.83 combo x35 score 44550
+244.91 combo x5 score 44730
+255.58 WAVE 6
+257.52 combo x5 score 45470
+266.62 combo x5 score 46660
+266.66 combo x10 score 47630
+269.27 HURT lives 0
+269.27 GAMEOVER 48530
+{"seed":5000011,"score":48530,"wave":6,"seconds":269.26666666666665,"breaks":382,"maxCombo":49,"livesLeft":0,"flings":934,"hitFlings":178,"hookTime":193.5,"enemyKills":5,"bossKills":0,"dead":true}

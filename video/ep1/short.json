@@ -1,0 +1,76 @@
+[
+ {
+  "id": "s1_stack",
+  "kind": "stack",
+  "dur": 44,
+  "music": {
+   "prog": "A",
+   "drums": true,
+   "vol": 0.9
+  },
+  "sfxVol": 0.6,
+  "data": {
+   "title": "GEN 1 vs GEN 183",
+   "sub": "same game · same seed · real replays",
+   "y0": 330,
+   "gap": 150
+  },
+  "runs": [
+   {
+    "file": "/ai/runs/ep1/checkpoints/gen_0001.json",
+    "seed": 5079201,
+    "start": 28,
+    "speed": 2,
+    "label": "GENERATION 1",
+    "color": "#ff3b5c"
+   },
+   {
+    "file": "/ai/runs/ep1/checkpoints/gen_0183.json",
+    "seed": 5079201,
+    "start": 28,
+    "speed": 2,
+    "label": "GENERATION 183",
+    "color": "#7dff5a"
+   }
+  ],
+  "captions": [
+   {
+    "t0": 0.2,
+    "t1": 5.5,
+    "text": "An AI ship with no gun. Only a rope.",
+    "size": 52
+   },
+   {
+    "t0": 6,
+    "t1": 13,
+    "text": "Generation 1 has no idea what the rope is for.",
+    "size": 52
+   },
+   {
+    "t0": 14,
+    "t1": 22,
+    "text": "Generation 183 learned to aim the throws.",
+    "size": 52
+   },
+   {
+    "t0": 23,
+    "t1": 31,
+    "text": "A tiny neural network, trained by evolution.",
+    "size": 52
+   },
+   {
+    "t0": 32,
+    "t1": 39.5,
+    "text": "Full experiment on the channel.",
+    "size": 52
+   },
+   {
+    "t0": 40,
+    "t1": 43.8,
+    "text": "Play free: jay2090x.github.io/shardsling",
+    "size": 46,
+    "color": "#7dff5a"
+   }
+  ]
+ }
+]
