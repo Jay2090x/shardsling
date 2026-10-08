@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#05060a" />
+    <meta name="description" content="Shardsling: hook crystal shards, swing them on a neon rope and fling them into each other." />
+    <title>Shardsling</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <script type="module" crossorigin src="./assets/index-BWnay1sy.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-e0l_Aibd.css">
+  </head>
+  <body>
+    <canvas id="game" aria-label="Shardsling game area"></canvas>
+
+    <div id="touch-ui" class="hidden" aria-hidden="true">
+      <div id="stick"><div id="stick-knob"></div></div>
+      <div id="hook-btn"><span>HOLD</span></div>
+    </div>
+
+    <button id="pause-btn" class="hidden" type="button" aria-label="Pause">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+    </button>
+
+    <section id="menu" class="overlay">
+      <div class="panel">
+        <h1 class="title">SHARD<span>SLING</span></h1>
+        <p class="tagline">No gun. Just a rope.</p>
+        <p class="howto">Hook a crystal, swing it around you and let go to smash it into others. Every fragment becomes new ammo. Don't touch drifting crystals.</p>
+        <div class="controls" id="controls-desktop">
+          <h2>Keyboard &amp; mouse</h2>
+          <div class="row"><span>Move</span><kbd>WASD</kbd><kbd>Arrows</kbd><em>or point with the mouse</em></div>
+          <div class="row"><span>Hook &amp; swing</span><kbd>hold Space</kbd><kbd>hold click</kbd></div>
+          <div class="row"><span>Fling</span><kbd>release</kbd></div>
+          <div class="row"><span>Pause</span><kbd>P</kbd><kbd>Esc</kbd></div>
+        </div>
+        <div class="controls hidden" id="controls-touch">
+          <h2>Touch</h2>
+          <div class="row"><span>Move</span><em>drag on the left side</em></div>
+          <div class="row"><span>Hook &amp; swing</span><em>hold the right side</em></div>
+          <div class="row"><span>Fling</span><em>let go</em></div>
+        </div>
+        <button id="play-btn" class="cta" type="button">PLAY</button>
+        <p class="best" id="menu-best"></p>
+        <p class="rotate-hint" id="rotate-hint">Tip: turn your device sideways for a bigger arena.</p>
+      </div>
+    </section>
+
+    <section id="pause" class="overlay hidden">
+      <div class="panel small">
+        <h2 class="big">PAUSED</h2>
+        <button id="resume-btn" class="cta" type="button">RESUME</button>
+        <button id="restart-btn" class="ghost" type="button">RESTART</button>
+        <button id="quit-btn" class="ghost" type="button">MENU</button>
+        <p class="hint desktop-only">P / Esc to resume</p>
+      </div>
+    </section>
+
+    <section id="gameover" class="overlay hidden">
+      <div class="panel small">
+        <h2 class="big">GAME OVER</h2>
+        <div class="stats">
+          <div><span>Score</span><b id="go-score">0</b></div>
+          <div><span>Best</span><b id="go-best">0</b></div>
+          <div><span>Wave</span><b id="go-wave">1</b></div>
+          <div><span>Max combo</span><b id="go-combo">0</b></div>
+        </div>
+        <button id="again-btn" class="cta" type="button">PLAY AGAIN</button>
+        <button id="go-menu-btn" class="ghost" type="button">MENU</button>
+      </div>
+    </section>
+
+  </body>
+</html>
