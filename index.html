@@ -7,8 +7,8 @@
     <meta name="description" content="Shardsling: hook crystal shards, swing them on a neon rope and fling them into each other." />
     <title>Shardsling</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <script type="module" crossorigin src="./assets/index-BWnay1sy.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-e0l_Aibd.css">
+    <script type="module" crossorigin src="./assets/index-DeW4K1Gv.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-D_ERAt8A.css">
   </head>
   <body>
     <canvas id="game" aria-label="Shardsling game area"></canvas>
@@ -16,7 +16,20 @@
     <div id="touch-ui" class="hidden" aria-hidden="true">
       <div id="stick"><div id="stick-knob"></div></div>
       <div id="hook-btn"><span>HOLD</span></div>
+      <div id="zone-move" class="zone"><b>MOVE</b><small>drag here</small></div>
+      <div id="zone-hook" class="zone"><b>HOLD TO HOOK</b><small>let go to fling</small></div>
     </div>
+
+    <section id="tutorial" class="hidden" aria-live="polite">
+      <div class="tut-card" id="tut-card" role="dialog" aria-labelledby="tut-title">
+        <div class="tut-head"><span class="tut-step" id="tut-step">1/4</span><h2 id="tut-title">The goal</h2></div>
+        <p id="tut-text"></p>
+        <div class="tut-actions">
+          <button id="tut-skip" class="ghost tut-btn" type="button">SKIP</button>
+          <button id="tut-next" class="cta tut-btn" type="button">GOT IT</button>
+        </div>
+      </div>
+    </section>
 
     <button id="pause-btn" class="hidden" type="button" aria-label="Pause">
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
@@ -40,7 +53,10 @@
           <div class="row"><span>Hook &amp; swing</span><em>hold the right side</em></div>
           <div class="row"><span>Fling</span><em>let go</em></div>
         </div>
-        <button id="play-btn" class="cta" type="button">PLAY</button>
+        <div class="btn-row">
+          <button id="play-btn" class="cta" type="button">PLAY</button>
+          <button id="howto-btn" class="ghost" type="button">HOW TO PLAY</button>
+        </div>
         <p class="best" id="menu-best"></p>
         <p class="rotate-hint" id="rotate-hint">Tip: turn your device sideways for a bigger arena.</p>
       </div>
@@ -51,6 +67,7 @@
         <h2 class="big">PAUSED</h2>
         <button id="resume-btn" class="cta" type="button">RESUME</button>
         <button id="restart-btn" class="ghost" type="button">RESTART</button>
+        <button id="pause-howto-btn" class="ghost" type="button">HOW TO PLAY</button>
         <button id="quit-btn" class="ghost" type="button">MENU</button>
         <p class="hint desktop-only">P / Esc to resume</p>
       </div>
