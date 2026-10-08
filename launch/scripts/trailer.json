@@ -1,0 +1,244 @@
+[
+ {
+  "id": "tr_1_title",
+  "kind": "cover",
+  "dur": 4.2,
+  "run": {
+   "file": "ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 777,
+   "wave": 10,
+   "bot": "heuristic",
+   "start": 3.95
+  },
+  "music": {
+   "prog": "A",
+   "drums": true,
+   "boss": true,
+   "vol": 0.9
+  },
+  "fadeIn": 0.25,
+  "data": {
+   "pre": 1,
+   "freeze": 0.8,
+   "lookOut": [
+    2.8,
+    3.6
+   ],
+   "cam": [
+    {
+     "t": 0,
+     "cx": 782,
+     "cy": 395,
+     "h": 440
+    },
+    {
+     "t": 2.8,
+     "cx": 782,
+     "cy": 395,
+     "h": 440
+    },
+    {
+     "t": 4.2,
+     "cx": 760,
+     "cy": 450,
+     "h": 640
+    }
+   ],
+   "noText": true,
+   "bloom": 0.45,
+   "vignette": 0.6,
+   "dof": {
+    "x": 0.56,
+    "y": 0.6,
+    "r": 0.62,
+    "blur": 3
+   },
+   "logo": {
+    "x": 0.5,
+    "y": 0.19,
+    "size": 0.135,
+    "band": true,
+    "tagline": "NO GUN. JUST A ROPE."
+   }
+  }
+ },
+ {
+  "id": "tr_2_swing",
+  "kind": "cover",
+  "dur": 6,
+  "run": {
+   "file": "ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 5079201,
+   "start": 29.5
+  },
+  "music": {
+   "prog": "A",
+   "drums": true,
+   "vol": 0.9
+  },
+  "data": {
+   "pre": 1,
+   "hud": true,
+   "follow": {
+    "h": 560,
+    "tau": 0.4
+   }
+  },
+  "captions": [
+   {
+    "t0": 0.3,
+    "t1": 5.8,
+    "text": "Hold to hook a crystal. Release to fling it.",
+    "sub": "every fragment becomes new ammo",
+    "pos": "bottom"
+   }
+  ]
+ },
+ {
+  "id": "tr_3_combo",
+  "kind": "cover",
+  "dur": 6,
+  "run": {
+   "file": "ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 5079201,
+   "start": 85.2
+  },
+  "music": {
+   "prog": "A",
+   "drums": true,
+   "vol": 0.9
+  },
+  "data": {
+   "pre": 1,
+   "hud": true,
+   "follow": {
+    "h": 640,
+    "tau": 0.5
+   }
+  },
+  "captions": [
+   {
+    "t0": 0.3,
+    "t1": 5.8,
+    "text": "Chain smashes for a x10 combo.",
+    "sub": "don't touch the drifting crystals",
+    "pos": "bottom"
+   }
+  ]
+ },
+ {
+  "id": "tr_4_enemies",
+  "kind": "cover",
+  "dur": 5.5,
+  "run": {
+   "file": "ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 777,
+   "wave": 10,
+   "bot": "heuristic",
+   "start": 37.4
+  },
+  "music": {
+   "prog": "A",
+   "drums": true,
+   "vol": 0.9
+  },
+  "data": {
+   "pre": 1,
+   "hud": true,
+   "follow": {
+    "h": 640,
+    "tau": 0.5
+   }
+  },
+  "captions": [
+   {
+    "t0": 0.3,
+    "t1": 5.3,
+    "text": "Hunters and prisms join in.",
+    "sub": "pick a perk after every cleared wave",
+    "pos": "bottom"
+   }
+  ]
+ },
+ {
+  "id": "tr_5_boss",
+  "kind": "cover",
+  "dur": 6,
+  "run": {
+   "file": "ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 777,
+   "wave": 10,
+   "bot": "heuristic",
+   "start": 21
+  },
+  "music": {
+   "prog": "A",
+   "drums": true,
+   "boss": true,
+   "vol": 0.9
+  },
+  "data": {
+   "pre": 1,
+   "hud": true,
+   "follow": {
+    "h": 640,
+    "tau": 0.5
+   }
+  },
+  "captions": [
+   {
+    "t0": 0.3,
+    "t1": 5.8,
+    "text": "Wave 10: the boss.",
+    "pos": "bottom"
+   }
+  ]
+ },
+ {
+  "id": "tr_6_end",
+  "kind": "cover",
+  "dur": 4.5,
+  "run": {
+   "file": "ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 777,
+   "wave": 10,
+   "bot": "heuristic",
+   "start": 27
+  },
+  "music": {
+   "prog": "B",
+   "drums": false,
+   "hats": true,
+   "vol": 0.85
+  },
+  "fadeOut": 0.6,
+  "sfxVol": 0.4,
+  "data": {
+   "pre": 1,
+   "cam": [
+    {
+     "t": 0,
+     "cx": 800,
+     "cy": 450,
+     "h": 900
+    }
+   ],
+   "noText": true,
+   "bloom": 0.3,
+   "vignette": 0.8,
+   "dof": {
+    "x": 0.5,
+    "y": 0.5,
+    "r": 0.05,
+    "blur": 8
+   },
+   "logo": {
+    "x": 0.5,
+    "y": 0.45,
+    "size": 0.14,
+    "band": true,
+    "tagline": "FREE IN YOUR BROWSER"
+   }
+  }
+ }
+]

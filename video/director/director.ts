@@ -42,7 +42,7 @@ export interface Mark {
 }
 export interface Scene {
   id: string;
-  kind: 'title' | 'game' | 'split' | 'grid' | 'chart' | 'net' | 'end' | 'card' | 'stack' | 'thumb';
+  kind: 'title' | 'game' | 'split' | 'grid' | 'chart' | 'net' | 'end' | 'card' | 'stack' | 'thumb' | 'cover';
   dur: number;
   captions?: Caption[];
   run?: RunSpec;
@@ -126,7 +126,8 @@ async function load(sc: Scene): Promise<{ frames: number }> {
   await document.fonts.load('700 40px Rajdhani');
   await document.fonts.load('500 40px Rajdhani');
   const L = layoutOf(sc);
-  if ((sc.kind === 'game' || sc.kind === 'thumb') && sc.run) runs = [await makeRun(sc.run, L.vw, L.vh)];
+  if ((sc.kind === 'game' || sc.kind === 'thumb' || sc.kind === 'cover') && sc.run) runs = [await makeRun(sc.run, L.vw, L.vh)];
+  if (sc.kind === 'cover') await coverInit(sc);
   if (sc.kind === 'stack' && sc.runs) runs = await Promise.all(sc.runs.map((r) => makeRun(r, W, Math.round((W * 9) / 16))));
   if (sc.kind === 'split' && sc.runs) runs = await Promise.all(sc.runs.map((r) => makeRun(r, 940, 529)));
   if (sc.kind === 'grid' && sc.runs) {
@@ -200,6 +201,9 @@ function frame(): string {
       break;
     case 'thumb':
       drawThumb(t, dt);
+      break;
+    case 'cover':
+      drawCover(t, dt);
       break;
     case 'title':
       drawTitle(t);
@@ -412,6 +416,254 @@ function drawThumb(t: number, dt: number): void {
     ctx.fillRect(0, 0, W, HGT);
   }
   for (const l of d.lines) glowText(ctx, l.text, l.x, l.y, { font: H(l.size), color: l.color, glow: 30, align: l.align ?? 'left', stroke: true });
+}
+
+
+// ------------------------------------------------------------------ cover / preview shot
+/**
+ * Key art and store preview shots: one real replay drawn by the game renderer through a camera
+ * (crop/zoom or drone-follow), optional light bloom + vignette, and the game's logo (same fonts and
+ * colours as the in-game title). Frame 0 of a preview shot is the matching cover image.
+ */
+interface CamKey { t: number; cx: number; cy: number; h: number }
+interface CoverData {
+  cam?: CamKey[];
+  /** follow the drone: visible arena height h, smoothing time constant tau (s), optional extra offset */
+  follow?: { h: number; tau?: number; dx?: number; dy?: number; from?: number };
+  hud?: boolean;
+  /** hide all in-game text (score popups, boss label) */
+  noText?: boolean;
+  /** seconds of replay played before frame 0 (not shown) */
+  pre?: number;
+  /** freeze the first frame for this many seconds before the replay starts moving */
+  freeze?: number;
+  bloom?: number;
+  vignette?: number;
+  /** depth of field: sharp inside a soft circle (screen fractions, or around the drone), blurred outside */
+  dof?: { x?: number; y?: number; r: number; blur: number; drone?: boolean };
+  /** light-painting: keep fading copies of recent frames (time constant in s), 'lighten'-blended */
+  exposure?: number;
+  exposureOut?: [number, number];
+  /** fade the look (bloom/vignette/logo) out over [t0, t1] */
+  lookOut?: [number, number];
+  logo?: { x: number; y: number; size: number; stack?: boolean; align?: CanvasTextAlign; tagline?: string; band?: boolean };
+}
+let camX = 0;
+let camY = 0;
+let camInit = false;
+async function coverInit(sc: Scene): Promise<void> {
+  camInit = false;
+  const d = (sc.data ?? {}) as CoverData;
+  const r = runs[0];
+  if (!r) return;
+  r.hud = d.hud ?? false;
+  r.noText = d.noText ?? false;
+  // pre-roll: play the replay silently so trails/particles exist on frame 0 (trace covers pre + dur)
+  const n = Math.round((d.pre ?? 0) * FPS);
+  for (let i = 0; i < n; i++) r.advance(1 / FPS, 1);
+  r.events = [];
+}
+function camAt(keys: CamKey[], t: number): { cx: number; cy: number; h: number } {
+  if (t <= keys[0].t) return keys[0];
+  for (let i = 1; i < keys.length; i++) {
+    if (t <= keys[i].t) {
+      const a = keys[i - 1];
+      const b = keys[i];
+      const k = ease((t - a.t) / (b.t - a.t));
+      return { cx: a.cx + (b.cx - a.cx) * k, cy: a.cy + (b.cy - a.cy) * k, h: a.h + (b.h - a.h) * k };
+    }
+  }
+  return keys[keys.length - 1];
+}
+export function drawLogo(c: CanvasRenderingContext2D, x: number, y: number, size: number, o: { stack?: boolean; align?: CanvasTextAlign; alpha?: number; tagline?: string } = {}): void {
+  const parts: [string, string][] = [['SHARD', C.cyan], ['SLING', C.magenta]];
+  c.save();
+  c.globalAlpha = o.alpha ?? 1;
+  c.font = H(size);
+  c.letterSpacing = `${Math.round(size * 0.04)}px`;
+  c.textBaseline = 'middle';
+  c.textAlign = 'left';
+  const widths = parts.map(([p]) => c.measureText(p).width);
+  const lines: { text: string; color: string; x: number; y: number }[] = [];
+  if (o.stack) {
+    const lh = size * 1.02;
+    parts.forEach(([p, col], i) => {
+      const w = widths[i];
+      const lx = o.align === 'left' ? x : o.align === 'right' ? x - w : x - w / 2;
+      lines.push({ text: p, color: col, x: lx, y: y + (i - 0.5) * lh });
+    });
+  } else {
+    const total = widths[0] + widths[1];
+    let lx = o.align === 'left' ? x : o.align === 'right' ? x - total : x - total / 2;
+    parts.forEach(([p, col], i) => {
+      lines.push({ text: p, color: col, x: lx, y });
+      lx += widths[i];
+    });
+  }
+  // dark halo for legibility on busy gameplay
+  for (const l of lines) {
+    c.lineJoin = 'round';
+    c.lineWidth = size * 0.16;
+    c.strokeStyle = 'rgba(2,3,8,0.72)';
+    c.shadowColor = 'rgba(0,0,0,0.9)';
+    c.shadowBlur = size * 0.35;
+    c.strokeText(l.text, l.x, l.y);
+  }
+  c.shadowBlur = 0;
+  for (const l of lines) {
+    c.fillStyle = l.color;
+    c.shadowColor = l.color;
+    c.shadowBlur = size * 0.45;
+    c.fillText(l.text, l.x, l.y);
+    c.shadowBlur = size * 0.16;
+    c.fillText(l.text, l.x, l.y);
+    c.shadowBlur = 0;
+    // thin bright core like a neon tube
+    c.globalAlpha = (o.alpha ?? 1) * 0.35;
+    c.fillStyle = '#ffffff';
+    c.fillText(l.text, l.x, l.y - size * 0.012);
+    c.globalAlpha = o.alpha ?? 1;
+  }
+  if (o.tagline) {
+    const ty = (o.stack ? y + size * 1.02 : y + size * 0.62) + size * 0.12;
+    const fx = o.align === 'left' ? x : o.align === 'right' ? x : x;
+    c.font = H7(Math.round(size * 0.2));
+    c.letterSpacing = `${Math.round(size * 0.065)}px`;
+    c.textAlign = o.align ?? 'center';
+    c.fillStyle = C.yellow;
+    c.shadowColor = C.yellow;
+    c.shadowBlur = size * 0.12;
+    c.fillText(o.tagline, fx, ty);
+  }
+  c.restore();
+}
+const bloomCanvas = document.createElement('canvas');
+const expCanvas = document.createElement('canvas');
+const dofCanvas = document.createElement('canvas');
+function drawCover(t: number, dt: number): void {
+  const sc = scene;
+  const d = (sc.data ?? {}) as CoverData;
+  const r = runs[0];
+  const frozen = t < (d.freeze ?? 0);
+  r.clock = t;
+  if (!frozen || frameNo === 0) r.advance(frozen ? 0 : dt, frozen ? 0 : speedAt(sc.run!, t));
+  // camera
+  let cx: number, cy: number, h: number;
+  if (d.follow && t >= (d.follow.from ?? 0)) {
+    const s = r.state;
+    h = d.follow.h;
+    const tx = s.drone.x + (d.follow.dx ?? 0);
+    const ty = s.drone.y + (d.follow.dy ?? 0);
+    if (!camInit) {
+      camX = tx;
+      camY = ty;
+      camInit = true;
+    } else {
+      const k = 1 - Math.exp(-dt / (d.follow.tau ?? 0.6));
+      camX += (tx - camX) * k;
+      camY += (ty - camY) * k;
+    }
+    cx = camX;
+    cy = camY;
+  } else {
+    ({ cx, cy, h } = d.cam ? camAt(d.cam, t) : { cx: ARENA_W / 2, cy: ARENA_H / 2, h: ARENA_H });
+    camX = cx;
+    camY = cy;
+    camInit = true;
+  }
+  const scale = HGT / h;
+  const vw = W / scale;
+  const x0 = vw >= ARENA_W ? (ARENA_W - vw) / 2 : Math.min(Math.max(cx - vw / 2, 0), ARENA_W - vw);
+  const y0 = h >= ARENA_H ? (ARENA_H - h) / 2 : Math.min(Math.max(cy - h / 2, 0), ARENA_H - h);
+  if (d.follow) {
+    camX = x0 + vw / 2;
+    camY = y0 + h / 2;
+  }
+  r.setCamera(x0, y0, scale);
+  const src = r.render();
+  let lookPre = 1;
+  if (d.lookOut) lookPre = 1 - ease(Math.min(1, Math.max(0, (t - d.lookOut[0]) / (d.lookOut[1] - d.lookOut[0]))));
+  if (d.dof && lookPre > 0) {
+    const fxp = d.dof.drone ? (r.state.drone.x - x0) * scale : (d.dof.x ?? 0.5) * W;
+    const fyp = d.dof.drone ? (r.state.drone.y - y0) * scale : (d.dof.y ?? 0.5) * HGT;
+    const rad = d.dof.r * Math.min(W, HGT);
+    ctx.save();
+    ctx.filter = `blur(${d.dof.blur * lookPre}px)`;
+    ctx.drawImage(src, 0, 0);
+    ctx.restore();
+    dofCanvas.width = W;
+    dofCanvas.height = HGT;
+    const m = dofCanvas.getContext('2d')!;
+    m.drawImage(src, 0, 0);
+    m.globalCompositeOperation = 'destination-in';
+    const g = m.createRadialGradient(fxp, fyp, rad * 0.55, fxp, fyp, rad);
+    g.addColorStop(0, 'rgba(0,0,0,1)');
+    g.addColorStop(1, `rgba(0,0,0,${1 - lookPre})`);
+    m.fillStyle = g;
+    m.fillRect(0, 0, W, HGT);
+    ctx.drawImage(dofCanvas, 0, 0);
+  } else ctx.drawImage(src, 0, 0);
+  if (d.exposure) {
+    let ex = 1;
+    if (d.exposureOut) ex = 1 - ease(Math.min(1, Math.max(0, (t - d.exposureOut[0]) / (d.exposureOut[1] - d.exposureOut[0]))));
+    if (expCanvas.width !== W || expCanvas.height !== HGT || frameNo === 0) {
+      expCanvas.width = W;
+      expCanvas.height = HGT;
+    }
+    const e = expCanvas.getContext('2d')!;
+    // fade the history, then add the current frame
+    e.globalCompositeOperation = 'source-over';
+    e.globalAlpha = 1 - Math.exp(-dt / d.exposure);
+    e.fillStyle = '#000';
+    e.fillRect(0, 0, W, HGT);
+    e.globalAlpha = 1;
+    e.globalCompositeOperation = 'lighten';
+    e.drawImage(src, 0, 0);
+    if (ex > 0) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighten';
+      ctx.globalAlpha = ex;
+      ctx.drawImage(expCanvas, 0, 0);
+      ctx.restore();
+    }
+  }
+  // look: bloom, vignette, logo (fades out for preview videos)
+  let look = 1;
+  if (d.lookOut) look = 1 - ease(Math.min(1, Math.max(0, (t - d.lookOut[0]) / (d.lookOut[1] - d.lookOut[0]))));
+  if (look > 0 && (d.bloom ?? 0) > 0) {
+    bloomCanvas.width = Math.round(W / 4);
+    bloomCanvas.height = Math.round(HGT / 4);
+    const b = bloomCanvas.getContext('2d')!;
+    b.filter = 'blur(6px)';
+    b.drawImage(src, 0, 0, bloomCanvas.width, bloomCanvas.height);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = (d.bloom ?? 0) * look;
+    ctx.drawImage(bloomCanvas, 0, 0, W, HGT);
+    ctx.restore();
+  }
+  if (look > 0 && (d.vignette ?? 0) > 0) {
+    const g = ctx.createRadialGradient(W / 2, HGT / 2, Math.min(W, HGT) * 0.35, W / 2, HGT / 2, Math.hypot(W, HGT) * 0.55);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, `rgba(0,0,0,${(d.vignette ?? 0) * look})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, HGT);
+  }
+  if (look > 0 && d.logo) {
+    const L = d.logo;
+    const size = L.size * Math.min(W, HGT);
+    if (L.band) {
+      const y = L.y * HGT;
+      const bh = size * (L.stack ? 2.6 : 1.7);
+      const g = ctx.createLinearGradient(0, y - bh / 2, 0, y + bh / 2);
+      g.addColorStop(0, 'rgba(3,4,10,0)');
+      g.addColorStop(0.5, `rgba(3,4,10,${0.55 * look})`);
+      g.addColorStop(1, 'rgba(3,4,10,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, y - bh / 2, W, bh);
+    }
+    drawLogo(ctx, L.x * W, L.y * HGT, size, { stack: L.stack, align: L.align, alpha: look, tagline: L.tagline });
+  }
 }
 
 // ------------------------------------------------------------------ chart
@@ -681,5 +933,5 @@ function summary() {
   }));
 }
 
-(window as unknown as Record<string, unknown>).director = { load, frame, events, summary, W, HGT, ARENA_W, ARENA_H, FPS };
+(window as unknown as Record<string, unknown>).director = { load, frame, events, summary, still: () => canvas.toDataURL('image/png'), W, HGT, ARENA_W, ARENA_H, FPS };
 (window as unknown as Record<string, unknown>).directorReady = true;

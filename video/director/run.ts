@@ -27,6 +27,10 @@ export class Run {
   /** scene clock (seconds) used to timestamp events for the audio mix */
   clock = 0;
   deadFor = 0;
+  /** draw the game's HUD (score, lives, wave) */
+  hud = true;
+  /** suppress every text the game renderer draws (score popups, labels): store covers may only show the title */
+  noText = false;
 
   constructor(
     readonly seed: number,
@@ -49,6 +53,12 @@ export class Run {
     r.cssW = w;
     r.cssH = h;
     r.view = { scale, dpr: 1, offX: (w - ARENA_W * scale) / 2, offY: (h - ARENA_H * scale) / 2 };
+  }
+
+  /** camera: arena point (x0, y0) at the canvas top-left, `scale` canvas px per arena unit */
+  setCamera(x0: number, y0: number, scale: number): void {
+    const r = this.renderer as unknown as { view: { scale: number; offX: number; offY: number; dpr: number } };
+    r.view = { scale, dpr: 1, offX: -x0 * scale, offY: -y0 * scale };
   }
 
   private tick(): void {
@@ -107,7 +117,16 @@ export class Run {
       const t = pickTarget(s, { moveX: 0, moveY: 0, hook, aimX: null, aimY: null });
       preview = { targetId: t ? t.id : -1, hookHeld: hook };
     }
-    this.renderer.render(s, alpha, this.fx, this.renderTime, true, preview, null);
+    const c2 = this.canvas.getContext('2d')!;
+    if (this.noText) {
+      c2.fillText = () => {};
+      c2.strokeText = () => {};
+    }
+    this.renderer.render(s, alpha, this.fx, this.renderTime, this.hud, preview, null);
+    if (this.noText) {
+      delete (c2 as unknown as Record<string, unknown>).fillText;
+      delete (c2 as unknown as Record<string, unknown>).strokeText;
+    }
     return this.canvas;
   }
 

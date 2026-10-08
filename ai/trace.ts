@@ -7,7 +7,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { SIM_DT } from '../src/sim/constants';
-import { choosePerk, createGame, perkOfferReady, step } from '../src/sim/sim';
+import { heuristicInput } from '../src/sim/bot';
+import { choosePerk, createGame, perkOfferReady, spawnWave, step } from '../src/sim/sim';
 import type { SimEvent } from '../src/sim/types';
 import { actionToInput, decide, DECIDE_EVERY, makeActivations } from './brain';
 
@@ -17,6 +18,10 @@ export interface TraceSpec {
   seed: number;
   start?: number;
   speed?: number | { t: number; speed: number }[];
+  /** jump straight to this wave at t=0 (same as the game's e2e hook jumpToWave) */
+  wave?: number;
+  /** 'heuristic' = the game's hand-written menu-demo bot (src/sim/bot.ts) instead of the network */
+  bot?: 'heuristic';
 }
 
 export interface TraceFrame {
@@ -48,16 +53,26 @@ export function loadWeights(root: string, spec: TraceSpec): number[] {
 
 /** Returns a JSON string: { weights, frames: TraceFrame[] } */
 export function traceRun(root: string, spec: TraceSpec, dur: number, fps: number): string {
-  const w = loadWeights(root, spec);
+  const w = spec.bot ? [] : loadWeights(root, spec);
   const s = createGame(spec.seed, 'play');
+  if (spec.wave) {
+    s.shards = [];
+    s.enemies = [];
+    s.perkOffer = null;
+    s.waveTimer = 0;
+    spawnWave(s, spec.wave);
+  }
   const act = makeActivations();
   let a = 0;
   let events: SimEvent[] = [];
   const tick = (record: boolean) => {
     if (s.phase === 'playing') {
       if (perkOfferReady(s)) choosePerk(s, 0);
-      if (s.tick % DECIDE_EVERY === 0) a = decide(s, w, act);
-      step(s, actionToInput(a), SIM_DT);
+      if (spec.bot) step(s, heuristicInput(s), SIM_DT);
+      else {
+        if (s.tick % DECIDE_EVERY === 0) a = decide(s, w, act);
+        step(s, actionToInput(a), SIM_DT);
+      }
     } else {
       step(s, actionToInput(0), SIM_DT);
     }

@@ -1,0 +1,43 @@
+[
+ {
+  "id": "cg_landscape",
+  "kind": "cover",
+  "dur": 0.05,
+  "stills": [
+   0
+  ],
+  "run": {
+   "file": "ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 777,
+   "wave": 10,
+   "bot": "heuristic",
+   "start": 3.95
+  },
+  "data": {
+   "pre": 1,
+   "cam": [
+    {
+     "t": 0,
+     "cx": 782,
+     "cy": 395,
+     "h": 440
+    }
+   ],
+   "noText": true,
+   "bloom": 0.45,
+   "vignette": 0.6,
+   "dof": {
+    "x": 0.56,
+    "y": 0.6,
+    "r": 0.62,
+    "blur": 6
+   },
+   "logo": {
+    "x": 0.5,
+    "y": 0.19,
+    "size": 0.135,
+    "band": true
+   }
+  }
+ }
+]

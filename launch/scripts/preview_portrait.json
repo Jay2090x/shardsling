@@ -1,0 +1,94 @@
+[
+ {
+  "id": "pv_portrait_1",
+  "kind": "cover",
+  "dur": 6.6,
+  "run": {
+   "file": "ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 777,
+   "wave": 10,
+   "bot": "heuristic",
+   "start": 3.95
+  },
+  "data": {
+   "pre": 1,
+   "freeze": 0.4,
+   "lookOut": [
+    0.4,
+    1.3
+   ],
+   "cam": [
+    {
+     "t": 0,
+     "cx": 715,
+     "cy": 450,
+     "h": 840
+    },
+    {
+     "t": 0.6,
+     "cx": 715,
+     "cy": 450,
+     "h": 840
+    },
+    {
+     "t": 2.4,
+     "cx": 760,
+     "cy": 450,
+     "h": 820
+    }
+   ],
+   "noText": true,
+   "bloom": 0.45,
+   "vignette": 0.6,
+   "dof": {
+    "x": 0.5,
+    "y": 0.58,
+    "r": 0.55,
+    "blur": 3
+   },
+   "logo": {
+    "x": 0.5,
+    "y": 0.16,
+    "size": 0.19,
+    "stack": true,
+    "band": true
+   }
+  }
+ },
+ {
+  "id": "pv_portrait_2",
+  "kind": "cover",
+  "dur": 6,
+  "run": {
+   "file": "ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 5079201,
+   "start": 85.2
+  },
+  "data": {
+   "pre": 1,
+   "follow": {
+    "h": 820,
+    "tau": 0.5
+   }
+  }
+ },
+ {
+  "id": "pv_portrait_3",
+  "kind": "cover",
+  "dur": 6,
+  "run": {
+   "file": "ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 777,
+   "wave": 10,
+   "bot": "heuristic",
+   "start": 37.4
+  },
+  "data": {
+   "pre": 1,
+   "follow": {
+    "h": 820,
+    "tau": 0.5
+   }
+  }
+ }
+]

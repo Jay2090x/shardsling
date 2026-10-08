@@ -1,0 +1,44 @@
+[
+ {
+  "id": "cg_portrait",
+  "kind": "cover",
+  "dur": 0.05,
+  "stills": [
+   0
+  ],
+  "run": {
+   "file": "ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 777,
+   "wave": 10,
+   "bot": "heuristic",
+   "start": 3.95
+  },
+  "data": {
+   "pre": 1,
+   "cam": [
+    {
+     "t": 0,
+     "cx": 715,
+     "cy": 450,
+     "h": 840
+    }
+   ],
+   "noText": true,
+   "bloom": 0.45,
+   "vignette": 0.6,
+   "dof": {
+    "x": 0.5,
+    "y": 0.58,
+    "r": 0.55,
+    "blur": 6
+   },
+   "logo": {
+    "x": 0.5,
+    "y": 0.16,
+    "size": 0.19,
+    "stack": true,
+    "band": true
+   }
+  }
+ }
+]

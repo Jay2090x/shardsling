@@ -52,17 +52,23 @@ async function worker(n) {
     const specs = [...(sc.run ? [sc.run] : []), ...(sc.runs ?? []), ...(sc.bgRun ? [sc.bgRun] : [])];
     specs.forEach((spec, k) => {
       const f = join(traceDir, `${sc.id}_${k}.json`);
-      writeFileSync(f, traceRun(root, spec, sc.dur, fps));
+      writeFileSync(f, traceRun(root, spec, sc.dur + (sc.data?.pre ?? 0), fps));
       spec.trace = '/' + relative(root, f);
     });
     const { frames } = await page.evaluate((s) => window.director.load(s), sc);
     const file = join(outDir, `${sc.id}.part.mp4`);
     const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', args.png ? 'png' : 'mjpeg', '-i', '-', '-c:v', 'libx264', '-preset', 'medium', '-crf', '17', '-pix_fmt', 'yuv420p', '-r', String(fps), file], { stdio: ['pipe', 'inherit', 'inherit'] });
     const done = new Promise((res, rej) => ff.on('close', (c) => (c === 0 ? res() : rej(new Error('ffmpeg ' + c)))));
-    const BATCH = 6;
+    // optional lossless PNG stills of given frame indices (covers, screenshots): <out>/<id>_f<frame>.png
+    const stills = new Set(sc.stills ?? []);
+    const BATCH = stills.size ? 1 : 6;
     for (let f = 0; f < frames; f += BATCH) {
       const n2 = Math.min(BATCH, frames - f);
       const urls = await page.evaluate((k) => Array.from({ length: k }, () => window.director.frame()), n2);
+      if (stills.has(f)) {
+        const png = await page.evaluate(() => window.director.still());
+        writeFileSync(join(outDir, `${sc.id}_f${f}.png`), Buffer.from(png.slice(png.indexOf(',') + 1), 'base64'));
+      }
       for (const u of urls) {
         const buf = Buffer.from(u.slice(u.indexOf(',') + 1), 'base64');
         if (!ff.stdin.write(buf)) await new Promise((r) => ff.stdin.once('drain', r));

@@ -1,0 +1,106 @@
+[
+ {
+  "id": "ss_swing",
+  "kind": "cover",
+  "dur": 0.05,
+  "stills": [
+   0
+  ],
+  "run": {
+   "file": "ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 5079201,
+   "start": 33.1
+  },
+  "data": {
+   "pre": 1,
+   "hud": true,
+   "cam": [
+    {
+     "t": 0,
+     "cx": 800,
+     "cy": 450,
+     "h": 900
+    }
+   ]
+  }
+ },
+ {
+  "id": "ss_combo",
+  "kind": "cover",
+  "dur": 0.05,
+  "stills": [
+   0
+  ],
+  "run": {
+   "file": "ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 5079201,
+   "start": 87.3
+  },
+  "data": {
+   "pre": 1,
+   "hud": true,
+   "cam": [
+    {
+     "t": 0,
+     "cx": 800,
+     "cy": 450,
+     "h": 900
+    }
+   ]
+  }
+ },
+ {
+  "id": "ss_enemies",
+  "kind": "cover",
+  "dur": 0.05,
+  "stills": [
+   0
+  ],
+  "run": {
+   "file": "ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 777,
+   "wave": 10,
+   "bot": "heuristic",
+   "start": 39.4
+  },
+  "data": {
+   "pre": 1,
+   "hud": true,
+   "cam": [
+    {
+     "t": 0,
+     "cx": 800,
+     "cy": 450,
+     "h": 900
+    }
+   ]
+  }
+ },
+ {
+  "id": "ss_boss",
+  "kind": "cover",
+  "dur": 0.05,
+  "stills": [
+   0
+  ],
+  "run": {
+   "file": "ai/runs/ep1/checkpoints/gen_0183.json",
+   "seed": 777,
+   "wave": 10,
+   "bot": "heuristic",
+   "start": 29
+  },
+  "data": {
+   "pre": 1,
+   "hud": true,
+   "cam": [
+    {
+     "t": 0,
+     "cx": 800,
+     "cy": 450,
+     "h": 900
+    }
+   ]
+  }
+ }
+]

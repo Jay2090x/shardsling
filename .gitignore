@@ -10,3 +10,7 @@ video/**/frames/
 video/**/thumbnail*.png
 video/**/short_frames/
 video/.traces/
+# store/launch media (rebuilt by launch/render-all.sh)
+launch/work/
+launch/crazygames/
+launch/itch/
