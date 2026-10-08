@@ -1,5 +1,6 @@
 import { ARENA_H, ARENA_W, SHARD, TETHER } from '../sim/constants';
 import type { GameState, Shard } from '../sim/types';
+import type { TutMark } from '../tutorial';
 import { Effects, TIER_COLORS } from './fx';
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -46,7 +47,15 @@ export class Renderer {
     y: (cy - this.view.offY) / this.view.scale,
   });
 
-  render(s: GameState, alpha: number, fx: Effects, time: number, showHud: boolean, preview: { targetId: number; hookHeld: boolean } | null = null): void {
+  render(
+    s: GameState,
+    alpha: number,
+    fx: Effects,
+    time: number,
+    showHud: boolean,
+    preview: { targetId: number; hookHeld: boolean } | null = null,
+    marks: TutMark[] | null = null,
+  ): void {
     const { ctx } = this;
     const { scale, offX, offY, dpr } = this.view;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -215,6 +224,8 @@ export class Renderer {
       ctx.restore();
     }
 
+    if (marks) this.drawMarks(s, alpha, marks, time, dx, dy);
+
     // particles & rings (additive)
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -252,7 +263,68 @@ export class Renderer {
 
     // ---------- HUD in screen space (minimum font sizes for small iframes/phones)
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (showHud) this.drawHud(s, fx);
+    if (showHud && !marks) this.drawHud(s, fx);
+  }
+
+  /** Tutorial highlights: pulsing ring + label around a shard, the drone or a fixed spot. */
+  private drawMarks(s: GameState, alpha: number, marks: TutMark[], time: number, dx: number, dy: number): void {
+    const { ctx } = this;
+    const textPx = Math.max(13 / this.view.scale, 24);
+    const pulse = Math.sin(time * 6);
+    for (const m of marks) {
+      let x = m.x ?? 0;
+      let y = m.y ?? 0;
+      let r = m.r ?? 40;
+      if (m.id === -1) {
+        x = dx;
+        y = dy;
+        r = s.drone.r + 22;
+      } else if (m.id !== undefined) {
+        const sh = s.shards.find((q) => q.id === m.id);
+        if (!sh) continue;
+        x = lerp(sh.px, sh.x, alpha);
+        y = lerp(sh.py, sh.y, alpha);
+        r = sh.r + 22;
+      }
+      r += pulse * 4;
+      ctx.save();
+      ctx.strokeStyle = m.color;
+      ctx.shadowColor = m.color;
+      ctx.shadowBlur = 14 * this.view.scale * this.view.dpr;
+      ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.75 + pulse * 0.25;
+      if (m.dashed) {
+        ctx.setLineDash([14, 10]);
+        ctx.lineDashOffset = -time * 30;
+        ctx.fillStyle = 'rgba(255,225,77,0.08)';
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // expanding ghost ring
+      const g = (time * 0.9) % 1;
+      ctx.globalAlpha = (1 - g) * 0.5;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, r + g * 40, 0, Math.PI * 2);
+      ctx.stroke();
+      // label above (below when too close to the top wall)
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 8 * this.view.scale * this.view.dpr;
+      ctx.fillStyle = m.color;
+      ctx.font = `700 ${textPx}px Orbitron, system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const above = y - r - textPx > textPx;
+      const tw = ctx.measureText(m.label).width / 2;
+      const lx = Math.min(ARENA_W - tw - 8, Math.max(tw + 8, x));
+      ctx.fillText(m.label, lx, above ? y - r - textPx * 0.8 : y + r + textPx * 0.8);
+      ctx.restore();
+    }
   }
 
   private drawShard(sh: Shard, alpha: number, s: GameState, glow: (px: number) => number): void {

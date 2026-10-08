@@ -4,8 +4,8 @@ Browser-Spiel (Canvas 2D, TypeScript, Vite, ohne Framework): Du steuerst eine ru
 Halten = Harpune auf einen Kristall-Splitter, er kreist am Neon-Seil um dich. Loslassen = er fliegt tangential weg
 und zertrümmert andere Splitter. Jedes Bruchstück ist neue Munition. Die Wände sind federnd (Bandenwürfe).
 
-Stand: 08.10.2026, Meilensteine 1–3 fertig plus eine erste spielbare Version des Kern-Twists („Hook & Fling“).
-Nur lokal: nichts deployed, nichts gepusht, keine Accounts.
+Stand: 08.10.2026, Meilensteine 1–3 fertig plus eine erste spielbare Version des Kern-Twists („Hook & Fling“)
+und ein interaktives Tutorial beim ersten Start. Live: https://jay2090x.github.io/shardsling/ (GitHub Pages, Branch `gh-pages`).
 
 ## Starten
 
@@ -30,6 +30,20 @@ alternativ `CHROMIUM_PATH=/pfad/zu/chrome npm run e2e`.
 | Tastatur | WASD / Pfeile | Leertaste halten | loslassen | P / Esc |
 | Maus | Zeiger (Drohne folgt) | Linksklick halten (zielt auf den Splitter am Zeiger) | loslassen | Pause-Button |
 | Touch | linke Hälfte ziehen (virtueller Stick) | rechte Hälfte halten | loslassen | Pause-Button |
+
+## Tutorial (erster Start)
+
+Beim ersten PLAY startet ein kurzes Tutorial in einer harmlosen Übungsarena (Sim-Modus `tutorial`: kein Schaden, keine Punkte, keine Wellen).
+4 Schritte, jeweils „Learning by Doing“ mit hervorgehobenem Ziel; NEXT als Rückfall, SKIP jederzeit (oder Esc/P):
+
+1. **Ziel**: Kristalle ineinander schleudern, alle zerschlagen = Welle geschafft, treibende Kristalle nicht berühren, 3 Leben.
+2. **Bewegen**: in den gelben Ring fliegen (geht von selbst weiter).
+3. **Haken & Schwingen**: halten, bis der Kristall eine Weile kreist.
+4. **Schleudern**: loslassen und einen Kristall treffen (Kombo-Hinweis). Danach „Nice hit!“ und PLAY.
+
+Texte je nach Gerät (Tastatur/Maus oder Touch). Auf Touch sind die beiden Hälften währenddessen beschriftet („MOVE“ / „HOLD TO HOOK“).
+Gespeichert wird `shardsling.tutorialDone` in localStorage (auch beim Überspringen). Wiederholen: „HOW TO PLAY“ im Menü und im Pause-Screen
+(aus der Pause zurück ins pausierte Spiel). Logik in `src/tutorial.ts`, Layout der Übungsarena in `src/sim/sim.ts` (`createTutorial`).
 
 Die Touch-Steuerung erscheint nach **Eingabegerät** (`pointer: coarse` bzw. erste echte Touch-Berührung), nicht nach Bildschirmbreite.
 Das Menü zeigt je nach Gerät die passenden Hinweise. Start mit genau einem Klick/Tap (oder Enter/Leertaste).
@@ -60,9 +74,9 @@ Das Menü zeigt je nach Gerät die passenden Hinweise. Start mit genau einem Kli
 
 ## Tests
 
-- `npm test`: 14 Unit-Tests (Zeitschritt/Determinismus, Wände, Haken→Schleudern→Zerbrechen, Leben/Game Over, Wellen, Spielbarkeit).
-- `npm run e2e`: 43 Browser-Checks in 1280×720, 907×510, 800×450, 1080×607 (Touch-Emulation), 390×844 und 844×390 (Handy).
-  Screenshots landen in `screenshots/`.
+- `npm test`: 18 Unit-Tests (Zeitschritt/Determinismus, Wände, Haken→Schleudern→Zerbrechen, Leben/Game Over, Wellen, Spielbarkeit, Tutorial-Arena).
+- `npm run e2e`: 94 Browser-Checks in 1280×720, 907×510, 800×450, 1080×607 (Touch-Emulation), 390×844 und 844×390 (Handy),
+  inkl. komplettem Tutorial-Durchlauf mit Tastatur und mit Touch. Screenshots landen in `screenshots/` (`tutorial-*.png` für die Tutorial-Schritte).
 
 ## Ordner
 
@@ -72,6 +86,7 @@ src/engine/   FixedStepper (Akkumulator)
 src/render/   Canvas-Renderer + rein kosmetische Effekte (Partikel, Shake, Trails)
 src/input/    Tastatur/Maus/Touch
 src/main.ts   Spielablauf, Menüs, Pause, Highscore
+src/tutorial.ts  Tutorial-Schritte, Texte, Hervorhebungen
 test/         Vitest
 scripts/      e2e.mjs (Playwright), headless.ts
 ```
@@ -79,7 +94,7 @@ scripts/      e2e.mjs (Playwright), headless.ts
 ## Bekannte Punkte / offen
 
 - Balancing ist ein erster Wurf (Seil-Länge, Spin-Kraft, Bruch-Geschwindigkeit stehen in `src/sim/constants.ts`). Braucht echtes Anspielen.
-- Kein Sound (M6), keine Perks/Gegner (M5), kein Onboarding-Geisterhinweis.
+- Kein Sound (M6), keine Perks/Gegner (M5).
 - Hochformat am Handy: die Arena ist fest 16:9 und wird klein, deshalb ein Hinweis „Gerät drehen“.
 - Maus-Steuerung: Sobald die Maus bewegt wird (ohne gedrückte Bewegungstaste), folgt die Drohne dem Zeiger. Wer mit Tastatur spielt und die Maus anstößt, merkt das kurz.
 - Die Determinismus-Garantie gilt innerhalb derselben JS-Engine (Math.exp/sqrt können sich zwischen Engines im letzten Bit unterscheiden). Für Replays im Video reicht das, weil Training und Aufnahme in Chromium/Node (V8) laufen.
@@ -87,7 +102,7 @@ scripts/      e2e.mjs (Playwright), headless.ts
 ## Nächste Schritte (Meilenstein 4+)
 
 1. **M4 Feinschliff des Twists**: Anspielen und tunen, Seil-Optik (leichte Kurve/Verlet), Bandenwurf-Bonus, Treffer-Feedback (Hitstop).
-2. **M5 Spielschleife**: 1 von 3 Perks nach jeder Welle (längeres Seil, Doppelhaken, explosive Würfe, Magnet-Seil), Gegner (Jäger, „Prisma“), Boss in Welle 10, Geister-Tutorial.
+2. **M5 Spielschleife**: 1 von 3 Perks nach jeder Welle (längeres Seil, Doppelhaken, explosive Würfe, Magnet-Seil), Gegner (Jäger, „Prisma“), Boss in Welle 10.
 3. **M6 Sound**: ZzFX/ZzFXM (MIT), Mute-Schalter, stumm bei Pause, AudioContext-Resume (iOS).
 4. **M7 Fortschritt**: Tages-Seed („Daily Sling“), freischaltbare Farben.
 5. **M8 KI-Harness**: Beobachtungen + Aktionen (9 Richtungen × Haken) auf `src/sim`, Neuroevolution-Trainer, Replay-Recorder/-Player (`?replay=`).

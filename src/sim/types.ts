@@ -72,7 +72,8 @@ export type SimEvent =
   | { type: 'wave'; wave: number; bonus: number }
   | { type: 'gameover'; score: number };
 
-export type Mode = 'attract' | 'play';
+/** 'tutorial': harmless practice arena (no damage, no points, no waves). */
+export type Mode = 'attract' | 'play' | 'tutorial';
 export type Phase = 'playing' | 'gameover';
 
 export interface GameState {

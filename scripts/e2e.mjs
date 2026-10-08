@@ -30,8 +30,10 @@ const server = await preview({ preview: { port: PORT, strictPort: true, host: 'l
 const browser = await chromium.launch({ executablePath: findChromium(), headless: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function newPage(name, ctxOpts) {
+async function newPage(name, ctxOpts, { freshPlayer = false } = {}) {
   const ctx = await browser.newContext({ deviceScaleFactor: 1, ...ctxOpts });
+  // the older checks play as a returning player (tutorial already seen); the tutorial checks start fresh
+  if (!freshPlayer) await ctx.addInitScript(() => localStorage.setItem('shardsling.tutorialDone', '1'));
   const page = await ctx.newPage();
   const external = [];
   const errors = [];
@@ -140,9 +142,10 @@ async function finish(p) {
   check('[desktop] auto-pause on window blur', (await G(page, 'screen')) === 'paused');
   await page.click('#resume-btn');
 
-  // mouse: hold click to hook
+  // mouse: hold click to hook (put a shard in reach first, the wave layout is random)
   await page.mouse.move(700, 380);
   await page.mouse.move(760, 400);
+  await page.evaluate(() => window.__shardsling.shardInReach());
   await page.mouse.down();
   await sleep(700);
   const t2 = await G(page, 'state.tether.state');
@@ -202,7 +205,8 @@ async function touchSession(page) {
   check('[tablet] touch controls visible at 1080px width', await visible(page, '#touch-ui'));
 
   const { touch } = await touchSession(page);
-  // right thumb: hold (wave 1 always starts with one shard inside hook range)
+  // right thumb: hold (wave 1 always starts with one shard inside hook range; use a light one so the stick check is stable)
+  await page.evaluate(() => window.__shardsling.shardInReach());
   await touch('touchStart', [{ x: 960, y: 500, id: 2 }]);
   await sleep(900);
   const ts = await G(page, 'state.tether.state');
@@ -239,6 +243,203 @@ for (const [label, vp] of [
   await sleep(900);
   await page.screenshot({ path: `${OUT}${label}-play.png` });
   await touch('touchEnd', []);
+  await finish(p);
+}
+
+// ------------------------------------------------------------ first-run tutorial
+const TUT = (name) => `${OUT}tutorial-${name}.png`;
+const waitFor = async (page, expr, want, ms = 6000) => {
+  const t0 = Date.now();
+  while (Date.now() - t0 < ms) {
+    if ((await G(page, expr)) === want) return true;
+    await sleep(40);
+  }
+  return false;
+};
+// In-page helper: waits (per animation frame) until the swung crystal flies toward the big target, then lets go
+// with a real input event on the page: a Space keyup (keyboard) or touch pointerups (touch). Doing this inside the
+// page avoids the test-runner round trip, which is too slow for frame-exact timing.
+const releaseWhenAligned = (page, kind) =>
+  page.evaluate(
+    (kind) =>
+      new Promise((res) => {
+        const t0 = performance.now();
+        let prev = null;
+        const tick = () => {
+          const s = window.__shardsling.state;
+          if (s.tether.state === 'attached') {
+            const held = s.shards.find((x) => x.id === s.tether.targetId);
+            // aim at the big crystal; if that one is on the rope, at any other solid crystal
+            const target =
+              s.shards.find((x) => x.tier === 3 && x !== held) ?? s.shards.find((x) => x.tier > 0 && x !== held);
+            if (held && target && Math.hypot(held.vx, held.vy) > 550) {
+              // signed angle between the crystal's flight direction and the direction to the target
+              const ang = Math.atan2(target.y - held.y, target.x - held.x) - Math.atan2(held.vy, held.vx);
+              const th = Math.atan2(Math.sin(ang), Math.cos(ang));
+              // the release takes effect in this same frame: let go on the frame closest to 0
+              // (consecutive frames differ by dlt, so one of them is within half a step)
+              if (prev !== null) {
+                const dlt = Math.atan2(Math.sin(th - prev), Math.cos(th - prev));
+                if (Math.abs(dlt) < 0.6 && Math.abs(th) <= Math.abs(dlt) / 2 + 0.02) {
+                  if (kind === 'key') window.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space' }));
+                  else for (let id = 0; id < 64; id++) window.dispatchEvent(new PointerEvent('pointerup', { pointerId: id, pointerType: 'touch' }));
+                  return res(true);
+                }
+              }
+              prev = th;
+            } else prev = null;
+          } else prev = null;
+          if (performance.now() - t0 > 5000) return res(false);
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      }),
+    kind,
+  );
+
+// desktop: keyboard
+{
+  const p = await newPage('tutorial desktop 1280x720', { viewport: { width: 1280, height: 720 } }, { freshPlayer: true });
+  const { page } = p;
+  check('[tutorial desktop] menu has a HOW TO PLAY button', await visible(page, '#howto-btn'));
+  await page.click('#play-btn');
+  check('[tutorial desktop] first PLAY opens the tutorial', (await G(page, 'screen')) === 'tutorial' && (await G(page, 'tutStep')) === 'goal');
+  check('[tutorial desktop] goal step explains the goal and 3 lives', /flinging crystals into each other/.test(await page.textContent('#tut-text')) && /3 lives/.test(await page.textContent('#tut-text')));
+  check('[tutorial desktop] no touch zones on desktop', !(await visible(page, '#zone-move')));
+  check('[tutorial desktop] skip button visible', await visible(page, '#tut-skip'));
+  await sleep(300);
+  await page.screenshot({ path: TUT('desktop-1-goal') });
+  await page.click('#tut-next');
+  check('[tutorial desktop] GOT IT -> move step', (await G(page, 'tutStep')) === 'move');
+  check('[tutorial desktop] move prompt names WASD', /WASD/.test(await page.textContent('#tut-text')));
+  await sleep(300);
+  await page.screenshot({ path: TUT('desktop-2-move') });
+  // learning by doing: fly right into the ring -> advances on its own
+  await page.keyboard.down('KeyD');
+  const moved = await waitFor(page, 'tutStep', 'hook', 4000);
+  await page.keyboard.up('KeyD');
+  check('[tutorial desktop] flying into the ring advances to hook', moved);
+  check('[tutorial desktop] hook prompt names Space', /Space/.test(await page.textContent('#tut-text')));
+  await sleep(500);
+  await page.screenshot({ path: TUT('desktop-3-hook') });
+  // hold Space: hook + swing -> fling step
+  await page.keyboard.down('Space');
+  const swung = await waitFor(page, 'tutStep', 'fling', 4000);
+  check('[tutorial desktop] holding Space (hook + swing) advances to fling', swung);
+  await sleep(150);
+  await page.screenshot({ path: TUT('desktop-4-fling') });
+  // release when the crystal swings toward the big one; retry a few times if it misses
+  let done = false;
+  for (let attempt = 0; attempt < 5 && !done; attempt++) {
+    if (attempt > 0) {
+      await page.keyboard.down('Space');
+      await waitFor(page, 'state.tether.state', 'attached', 3000);
+      await sleep(500);
+    }
+    await releaseWhenAligned(page, 'key');
+    await page.keyboard.up('Space');
+    done = await waitFor(page, 'tutStep', 'done', 2500);
+  }
+  check('[tutorial desktop] letting go into the big crystal breaks it -> done card', done);
+  await sleep(250);
+  await page.screenshot({ path: TUT('desktop-5-done') });
+  check('[tutorial desktop] done card offers PLAY', (await page.textContent('#tut-next')).trim() === 'PLAY');
+  await page.click('#tut-next');
+  check('[tutorial desktop] PLAY starts a real game (3 lives, wave 1)', (await G(page, 'screen')) === 'playing' && (await G(page, 'state.mode')) === 'play' && (await G(page, 'state.lives')) === 3);
+  check('[tutorial desktop] tutorialDone saved in localStorage', (await page.evaluate(() => localStorage.getItem('shardsling.tutorialDone'))) === '1');
+  // pause -> how to play -> skip returns to the same paused game
+  await page.click('#pause-btn');
+  const tick = await G(page, 'state.tick');
+  check('[tutorial desktop] pause screen has HOW TO PLAY', await visible(page, '#pause-howto-btn'));
+  await page.click('#pause-howto-btn');
+  check('[tutorial desktop] HOW TO PLAY from pause opens the tutorial', (await G(page, 'screen')) === 'tutorial' && (await G(page, 'state.mode')) === 'tutorial');
+  await page.keyboard.press('Escape');
+  check('[tutorial desktop] Esc leaves it and returns to the paused game', (await G(page, 'screen')) === 'paused' && (await G(page, 'state.tick')) === tick && (await G(page, 'state.mode')) === 'play');
+  await page.click('#quit-btn');
+  // second visit: PLAY goes straight into the game, HOW TO PLAY still replays it
+  await page.reload({ waitUntil: 'networkidle' });
+  await sleep(300);
+  await page.click('#play-btn');
+  check('[tutorial desktop] returning player: PLAY skips the tutorial', (await G(page, 'screen')) === 'playing');
+  await page.keyboard.press('KeyP');
+  await page.click('#quit-btn');
+  await page.click('#howto-btn');
+  check('[tutorial desktop] menu HOW TO PLAY replays it', (await G(page, 'screen')) === 'tutorial' && (await G(page, 'tutStep')) === 'goal');
+  await page.click('#tut-skip');
+  check('[tutorial desktop] SKIP from the menu returns to the menu', (await G(page, 'screen')) === 'menu');
+  await finish(p);
+}
+
+// desktop: SKIP on first play goes straight into the game and is remembered
+{
+  const p = await newPage('tutorial skip 1280x720', { viewport: { width: 1280, height: 720 } }, { freshPlayer: true });
+  const { page } = p;
+  await page.keyboard.press('Enter');
+  check('[tutorial skip] Enter in the menu opens the tutorial for a new player', (await G(page, 'screen')) === 'tutorial');
+  await page.click('#tut-skip');
+  check('[tutorial skip] SKIP on first play starts the game', (await G(page, 'screen')) === 'playing' && (await G(page, 'state.mode')) === 'play');
+  check('[tutorial skip] skipping is remembered', (await page.evaluate(() => localStorage.getItem('shardsling.tutorialDone'))) === '1');
+  await finish(p);
+}
+
+// touch: phone landscape (two thumbs) + tablet
+for (const [label, vp, dsf] of [
+  ['phone-844x390', { width: 844, height: 390 }, 2],
+  ['tablet-1080x607', { width: 1080, height: 607 }, 1],
+]) {
+  const shots = label.startsWith('phone');
+  const p = await newPage(`tutorial ${label} touch`, { viewport: vp, hasTouch: true, isMobile: true, deviceScaleFactor: dsf }, { freshPlayer: true });
+  const { page } = p;
+  const box = await page.locator('#menu .panel').boundingBox();
+  check(`[tutorial ${label}] menu with HOW TO PLAY still fits`, box && box.y >= 0 && box.y + box.height <= vp.height + 1, JSON.stringify(box));
+  await page.tap('#play-btn');
+  await sleep(200);
+  check(`[tutorial ${label}] first tap on PLAY opens the tutorial`, (await G(page, 'screen')) === 'tutorial');
+  check(`[tutorial ${label}] touch zones are labeled`, (await visible(page, '#zone-move')) && (await visible(page, '#zone-hook')) &&
+    /MOVE/.test(await page.textContent('#zone-move')) && /HOLD TO HOOK/.test(await page.textContent('#zone-hook')));
+  const card = await page.locator('#tut-card').boundingBox();
+  check(`[tutorial ${label}] card fits on screen`, card && card.y >= 0 && card.y + card.height < vp.height * 0.45, JSON.stringify(card));
+  if (shots) await page.screenshot({ path: TUT('phone-1-goal') });
+  await page.tap('#tut-next');
+  check(`[tutorial ${label}] touch move prompt`, /left side/.test(await page.textContent('#tut-text')));
+  await sleep(250);
+  if (shots) await page.screenshot({ path: TUT('phone-2-move') });
+  const { touch } = await touchSession(page);
+  // left thumb: drag right
+  const sx = 150;
+  const sy = vp.height - 120;
+  await touch('touchStart', [{ x: sx, y: sy, id: 1 }]);
+  await touch('touchMove', [{ x: sx + 60, y: sy, id: 1 }]);
+  const moved = await waitFor(page, 'tutStep', 'hook', 4000);
+  await touch('touchEnd', []);
+  check(`[tutorial ${label}] dragging the left stick advances to hook`, moved);
+  check(`[tutorial ${label}] touch hook prompt`, /right side/.test(await page.textContent('#tut-text')));
+  await sleep(500);
+  if (shots) await page.screenshot({ path: TUT('phone-3-hook') });
+  // right thumb: hold
+  const hx = vp.width - 90;
+  const hy = vp.height - 80;
+  await touch('touchStart', [{ x: hx, y: hy, id: 2 }]);
+  const swung = await waitFor(page, 'tutStep', 'fling', 4000);
+  check(`[tutorial ${label}] holding the right side advances to fling`, swung);
+  await sleep(150);
+  if (shots) await page.screenshot({ path: TUT('phone-4-fling') });
+  let done = false;
+  for (let attempt = 0; attempt < 6 && !done; attempt++) {
+    if (attempt > 0) {
+      await touch('touchStart', [{ x: hx, y: hy, id: 2 }]);
+      await waitFor(page, 'state.tether.state', 'attached', 3000);
+      await sleep(500);
+    }
+    await releaseWhenAligned(page, 'touch');
+    await touch('touchEnd', []);
+    done = await waitFor(page, 'tutStep', 'done', 2500);
+  }
+  check(`[tutorial ${label}] lifting the thumb flings into the big crystal -> done`, done);
+  await sleep(250);
+  if (shots) await page.screenshot({ path: TUT('phone-5-done') });
+  await page.tap('#tut-next');
+  check(`[tutorial ${label}] PLAY starts the game, zone labels gone`, (await G(page, 'screen')) === 'playing' && !(await visible(page, '#zone-move')));
   await finish(p);
 }
 

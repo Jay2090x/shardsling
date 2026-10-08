@@ -60,6 +60,35 @@ export function createGame(seed: number, mode: Mode = 'play'): GameState {
   return s;
 }
 
+/**
+ * Fixed layout of the practice arena used by the first-run tutorial.
+ * The ammo shard is inside hook range of the move target, the big target is just outside it.
+ */
+export const TUTORIAL_LAYOUT = {
+  start: { x: 470, y: 560 },
+  moveTarget: { x: 800, y: 560 },
+  moveRadius: 70,
+  ammo: { x: 800, y: 730 },
+  target: { x: 1230, y: 500 },
+} as const;
+
+/** Practice arena for the tutorial: mode 'tutorial', one small ammo shard and one big target, nothing drifts. */
+export function createTutorial(seed: number): GameState {
+  const s = createGame(seed, 'tutorial');
+  const L = TUTORIAL_LAYOUT;
+  s.shards = [];
+  s.nextId = 1;
+  s.drone.x = s.drone.px = L.start.x;
+  s.drone.y = s.drone.py = L.start.y;
+  s.drone.invuln = 0;
+  s.tether.hx = L.start.x;
+  s.tether.hy = L.start.y;
+  s.shards.push(makeShard(s, 1, L.ammo.x, L.ammo.y, 0, 0));
+  s.shards.push(makeShard(s, 3, L.target.x, L.target.y, 0, 0));
+  for (const sh of s.shards) sh.spin *= 0.4;
+  return s;
+}
+
 /** Deep copy (the state is plain JSON-like data). */
 export function cloneState(s: GameState): GameState {
   return {
@@ -384,7 +413,7 @@ export function step(s: GameState, input: SimInput, dt: number): GameState {
     }
   }
 
-  if (alive) {
+  if (alive && s.mode !== 'tutorial') {
     s.waveAge += dt;
     if (s.waveTimer > 0) {
       s.waveTimer -= dt;

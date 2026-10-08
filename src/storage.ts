@@ -14,3 +14,19 @@ export function saveBest(v: number): void {
     /* storage may be blocked in iframes */
   }
 }
+
+const TUT_KEY = 'shardsling.tutorialDone';
+export function loadTutorialDone(): boolean {
+  try {
+    return localStorage.getItem(TUT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+export function saveTutorialDone(): void {
+  try {
+    localStorage.setItem(TUT_KEY, '1');
+  } catch {
+    /* storage may be blocked in iframes */
+  }
+}
