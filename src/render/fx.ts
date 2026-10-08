@@ -35,7 +35,7 @@ export class Effects {
   rings: Ring[] = [];
   texts: FloatText[] = [];
   shake = 0;
-  banner: { text: string; sub: string; life: number } | null = null;
+  banner: { text: string; sub: string; life: number; color?: string } | null = null;
   hurtFlash = 0;
   trails = new Map<number, { x: number; y: number }[]>();
 
@@ -96,7 +96,43 @@ export class Effects {
         this.hurtFlash = 0.35;
         break;
       case 'wave':
-        this.banner = { text: `WAVE ${e.wave}`, sub: e.bonus > 0 ? `+${e.bonus} clear bonus` : '', life: 1.8 };
+        this.banner = e.boss
+          ? { text: 'BOSS', sub: `WAVE ${e.wave}: smash the core`, life: 2.4, color: '#ff3b5c' }
+          : { text: `WAVE ${e.wave}`, sub: '', life: 1.6 };
+        break;
+      case 'clear':
+        this.banner = { text: `WAVE ${e.wave} CLEAR`, sub: e.bonus > 0 ? `+${e.bonus} clear bonus` : '', life: 1.4 };
+        break;
+      case 'blast':
+        this.rings.push({ x: e.x, y: e.y, r: e.r * 0.4, grow: e.r * 2.2, life: 0.3, max: 0.3, color: '#ffe14d' });
+        break;
+      case 'enemySpawn':
+        break;
+      case 'enemyKill': {
+        const c = e.kind === 'hunter' ? '#ff3b5c' : e.kind === 'prism' ? '#ff9a3b' : '#ff2bd6';
+        const big = e.kind === 'boss';
+        this.burst(e.x, e.y, big ? 160 : 34, c, big ? 700 : 360, big ? 1.4 : 0.8, big ? 4 : 3);
+        this.burst(e.x, e.y, big ? 60 : 12, '#ffffff', big ? 500 : 300, 0.5, 2);
+        this.rings.push({ x: e.x, y: e.y, r: e.r, grow: big ? 900 : 320, life: big ? 0.8 : 0.4, max: big ? 0.8 : 0.4, color: c });
+        if (big) this.rings.push({ x: e.x, y: e.y, r: e.r, grow: 1400, life: 1, max: 1, color: '#ffe14d' });
+        this.shake = Math.min(big ? 30 : 16, this.shake + (big ? 30 : 6));
+        if (e.points > 0) {
+          this.texts.push({ x: e.x, y: e.y - e.r, text: e.combo > 1 ? `+${e.points}  x${Math.min(e.combo, 10)}` : `+${e.points}`, life: big ? 1.6 : 1, color: '#ffe14d' });
+        }
+        if (big) this.banner = { text: 'CORE DOWN', sub: '', life: 1.8, color: '#ffe14d' };
+        break;
+      }
+      case 'bossHit':
+        this.burst(e.x, e.y, 18, '#ff2bd6', 320, 0.5, 2.5);
+        this.rings.push({ x: e.x, y: e.y, r: 10, grow: 220, life: 0.25, max: 0.25, color: '#ffffff' });
+        this.shake = Math.min(18, this.shake + 7);
+        if (e.points > 0) this.texts.push({ x: e.x, y: e.y, text: `+${e.points}`, life: 0.8, color: '#ff9ce9' });
+        break;
+      case 'enemyFire':
+        this.burst(e.x, e.y, e.kind === 'boss' ? 30 : 10, e.kind === 'boss' ? '#ff3b5c' : '#ff9a3b', 240, 0.4, 2.5);
+        if (e.kind === 'boss') this.shake = Math.min(14, this.shake + 5);
+        break;
+      case 'perk':
         break;
       case 'gameover':
         this.shake = 22;

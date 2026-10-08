@@ -1,5 +1,8 @@
-import { ARENA_H, ARENA_W, SHARD, TETHER } from '../sim/constants';
-import type { GameState, Shard } from '../sim/types';
+import { ARENA_H, ARENA_W, SHARD } from '../sim/constants';
+import { hookRange, worldTimeScale } from '../sim/perks';
+import { PERK_INFO } from '../perkInfo';
+import { PERK_IDS } from '../sim/types';
+import type { Enemy, GameState, Shard } from '../sim/types';
 import type { TutMark } from '../tutorial';
 import { Effects, TIER_COLORS } from './fx';
 
@@ -105,7 +108,7 @@ export class Renderer {
       ctx.setLineDash([6, 10]);
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(dx, dy, TETHER.range, 0, Math.PI * 2);
+      ctx.arc(dx, dy, hookRange(s), 0, Math.PI * 2);
       ctx.stroke();
       ctx.setLineDash([]);
     }
@@ -164,7 +167,23 @@ export class Renderer {
       ctx.lineWidth = t.state === 'attached' ? 3.5 : 2.5;
       ctx.beginPath();
       ctx.moveTo(dx, dy);
-      ctx.lineTo(hx, hy);
+      if (t.state === 'attached') {
+        // a slight sag, plus a small travelling wave while the crystal swings
+        const mx = (dx + hx) / 2;
+        const my = (dy + hy) / 2;
+        const len = Math.hypot(hx - dx, hy - dy) || 1;
+        const sag = Math.min(26, len * 0.06);
+        const wave = Math.sin(time * 14) * 5;
+        // bend against the direction of rotation: the middle of the rope trails behind
+        const px = -((hy - dy) / len) * (sag + wave) * -t.dir;
+        const py = ((hx - dx) / len) * (sag + wave) * -t.dir;
+        ctx.quadraticCurveTo(mx + px, my + py, hx, hy);
+      } else ctx.lineTo(hx, hy);
+      ctx.stroke();
+      // hot white core
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = t.state === 'attached' ? 1.4 : 1;
+      ctx.strokeStyle = 'rgba(255,252,230,0.85)';
       ctx.stroke();
       ctx.fillStyle = '#ffe14d';
       ctx.beginPath();
@@ -172,6 +191,9 @@ export class Renderer {
       ctx.fill();
       ctx.restore();
     }
+
+    // enemies
+    for (const e of s.enemies) this.drawEnemy(e, alpha, time, glow);
 
     // shards
     for (const sh of s.shards) this.drawShard(sh, alpha, s, glow);
@@ -255,6 +277,17 @@ export class Renderer {
       ctx.fillText(tx.text, tx.x, tx.y);
     }
     ctx.globalAlpha = 1;
+
+    // Focus perk: cool tint while the world runs slower
+    if (worldTimeScale(s) < 1) {
+      ctx.fillStyle = 'rgba(34,229,255,0.05)';
+      ctx.fillRect(0, 0, ARENA_W, ARENA_H);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(34,229,255,0.25)';
+      ctx.lineWidth = 18;
+      ctx.strokeRect(9, 9, ARENA_W - 18, ARENA_H - 18);
+      ctx.restore();
+    }
 
     if (fx.hurtFlash > 0) {
       ctx.fillStyle = `rgba(255,40,80,${fx.hurtFlash * 0.5})`;
@@ -373,6 +406,182 @@ export class Renderer {
     ctx.restore();
   }
 
+  private drawEnemy(e: Enemy, alpha: number, time: number, glow: (px: number) => number): void {
+    const { ctx } = this;
+    const x = lerp(e.px, e.x, alpha);
+    const y = lerp(e.py, e.y, alpha);
+    const warping = e.spawn > 0;
+    ctx.save();
+    if (warping) ctx.globalAlpha = Math.max(0.15, 1 - e.spawn);
+    ctx.save();
+    if (e.kind === 'hunter') this.drawHunter(e, x, y, time, glow);
+    else if (e.kind === 'prism') this.drawPrism(e, x, y, time, glow);
+    else this.drawBoss(e, x, y, time, glow);
+    ctx.restore();
+    // telegraph: the aim line shows exactly where the shot will go
+    if (e.charge > 0 && e.chargeMax > 0) {
+      const k = 1 - e.charge / e.chargeMax; // 0 -> 1 while charging
+      const color = e.kind === 'boss' ? '#ff3b5c' : '#ff9a3b';
+      ctx.globalAlpha = 0.25 + k * 0.75;
+      ctx.strokeStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = glow(12);
+      ctx.lineWidth = 1.5 + k * 3;
+      ctx.setLineDash([10, 8]);
+      ctx.lineDashOffset = -time * 60;
+      const drawLine = (a: number) => {
+        ctx.beginPath();
+        ctx.moveTo(x + Math.cos(a) * (e.r + 6), y + Math.sin(a) * (e.r + 6));
+        ctx.lineTo(x + Math.cos(a) * (e.r + 60 + k * 420), y + Math.sin(a) * (e.r + 60 + k * 420));
+        ctx.stroke();
+      };
+      if (e.attack === 'shot') drawLine(e.aim);
+      else if (e.attack === 'volley') {
+        for (let i = -1; i <= 1; i++) drawLine(e.aim + i * 0.32);
+      } else {
+        for (let i = 0; i < 8; i++) drawLine(e.aim + (i / 8) * Math.PI * 2);
+      }
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+    if (warping) {
+      // closing warp ring
+      ctx.save();
+      ctx.strokeStyle = e.kind === 'hunter' ? '#ff3b5c' : e.kind === 'prism' ? '#ff9a3b' : '#ff2bd6';
+      ctx.globalAlpha = Math.min(1, e.spawn * 2);
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(x, y, e.r + 8 + e.spawn * 140, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  private drawHunter(e: Enemy, x: number, y: number, time: number, glow: (px: number) => number): void {
+    const { ctx } = this;
+    ctx.translate(x, y);
+    ctx.rotate(e.angle);
+    ctx.shadowColor = '#ff3b5c';
+    ctx.shadowBlur = glow(e.stun > 0 ? 6 : 14);
+    ctx.fillStyle = 'rgba(255,59,92,0.18)';
+    ctx.strokeStyle = '#ff3b5c';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, e.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    // eye, looking at the drone (the body is rotated toward it)
+    ctx.shadowBlur = glow(6);
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(6, 0, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1a0610';
+    ctx.beginPath();
+    ctx.arc(8, 0, 2.6, 0, Math.PI * 2);
+    ctx.fill();
+    // stunned: a little swirl above
+    if (e.stun > 0) {
+      ctx.rotate(-e.angle);
+      ctx.strokeStyle = 'rgba(255,225,77,0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, -e.r - 8, 5, time * 6, time * 6 + Math.PI * 1.4);
+      ctx.stroke();
+    }
+  }
+
+  private drawPrism(e: Enemy, x: number, y: number, time: number, glow: (px: number) => number): void {
+    const { ctx } = this;
+    const charging = e.charge > 0;
+    ctx.translate(x, y);
+    ctx.rotate(e.angle);
+    ctx.shadowColor = charging ? '#ff3b5c' : '#ff9a3b';
+    ctx.shadowBlur = glow(charging ? 20 : 12);
+    ctx.strokeStyle = charging ? '#ffb199' : '#ff9a3b';
+    ctx.fillStyle = 'rgba(255,154,59,0.14)';
+    ctx.lineWidth = 3;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+      const rr = e.r * (i % 2 === 0 ? 1.05 : 0.72);
+      if (i === 0) ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      else ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    // inner spinning triangle
+    ctx.rotate(-time * 1.6);
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha *= 0.8;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI * 2;
+      const rr = e.r * 0.45;
+      if (i === 0) ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      else ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  private drawBoss(e: Enemy, x: number, y: number, time: number, glow: (px: number) => number): void {
+    const { ctx } = this;
+    const charging = e.charge > 0;
+    ctx.translate(x, y);
+    ctx.shadowColor = charging ? '#ff3b5c' : '#ff2bd6';
+    ctx.shadowBlur = glow(charging ? 28 : 18);
+    if (e.flash > 0) ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = charging ? '#ff6b8a' : '#ff2bd6';
+    ctx.fillStyle = 'rgba(255,43,214,0.10)';
+    ctx.lineWidth = 5;
+    ctx.lineJoin = 'round';
+    const pulse = 1 + (charging ? Math.sin(time * 18) * 0.03 : 0);
+    ctx.beginPath();
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2 + e.angle;
+      const rr = e.r * (i % 2 === 0 ? 1.02 : 0.78) * pulse;
+      if (i === 0) ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      else ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    // inner hex core
+    ctx.shadowBlur = glow(8);
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 - time * 0.6;
+      const rr = e.r * 0.42;
+      if (i === 0) ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      else ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.stroke();
+    // health bar
+    const w = e.r * 1.6;
+    const frac = e.hp / e.maxHp;
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = 'rgba(5,6,10,0.8)';
+    ctx.fillRect(-w / 2, -e.r - 22, w, 8);
+    ctx.fillStyle = frac < 0.5 ? '#ff3b5c' : '#ff2bd6';
+    ctx.fillRect(-w / 2, -e.r - 22, w * frac, 8);
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-w / 2, -e.r - 22, w, 8);
+    // name tag
+    ctx.fillStyle = '#ff2bd6';
+    ctx.font = '700 16px Orbitron, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('CORE', 0, -e.r - 26);
+  }
+
   private drawHud(s: GameState, fx: Effects): void {
     const { ctx } = this;
     const { scale, offX, offY } = this.view;
@@ -397,7 +606,8 @@ export class Renderer {
     // lives as small drone rings
     const lr = small * 0.45;
     const lx = left + ctx.measureText(`WAVE ${s.wave}`).width + small * 1.2;
-    for (let i = 0; i < 3; i++) {
+    const slots = Math.max(3, s.lives);
+    for (let i = 0; i < slots; i++) {
       ctx.beginPath();
       ctx.arc(lx + i * lr * 3, top + big * 1.12 + small * 0.5, lr, 0, Math.PI * 2);
       ctx.strokeStyle = i < s.lives ? '#22e5ff' : 'rgba(108,138,150,0.4)';
@@ -407,6 +617,14 @@ export class Renderer {
         ctx.fillStyle = 'rgba(34,229,255,0.35)';
         ctx.fill();
       }
+    }
+
+    // perks picked so far
+    const chips = PERK_IDS.filter((id) => s.perks[id] > 0 && id !== 'life').map((id) => `${PERK_INFO[id].short} ${'I'.repeat(s.perks[id])}`);
+    if (chips.length > 0) {
+      ctx.font = `700 ${Math.max(10, small * 0.85)}px Orbitron, system-ui, sans-serif`;
+      ctx.fillStyle = 'rgba(255,225,77,0.75)';
+      ctx.fillText(chips.join('  '), left, top + big * 1.12 + small * 1.5);
     }
 
     // combo
@@ -430,8 +648,9 @@ export class Renderer {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.font = `900 ${big * 1.6}px Orbitron, system-ui, sans-serif`;
-      ctx.fillStyle = '#ff2bd6';
-      ctx.shadowColor = '#ff2bd6';
+      const bc = fx.banner.color ?? '#ff2bd6';
+      ctx.fillStyle = bc;
+      ctx.shadowColor = bc;
       ctx.shadowBlur = 18;
       ctx.fillText(fx.banner.text, cx, cy);
       if (fx.banner.sub) {

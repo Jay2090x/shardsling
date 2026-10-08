@@ -30,3 +30,19 @@ export function saveTutorialDone(): void {
     /* storage may be blocked in iframes */
   }
 }
+
+const MUTE_KEY = 'shardsling.muted';
+export function loadMuted(): boolean {
+  try {
+    return localStorage.getItem(MUTE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+export function saveMuted(m: boolean): void {
+  try {
+    localStorage.setItem(MUTE_KEY, m ? '1' : '0');
+  } catch {
+    /* storage may be blocked in iframes */
+  }
+}

@@ -106,8 +106,10 @@ async function finish(p) {
     const s = window.__shardsling;
     const t0 = performance.now();
     const k0 = s.state.tick;
+    const f0 = s.frozenMs;
     await new Promise((res) => setTimeout(res, 2000));
-    return { ticks: s.state.tick - k0, ms: performance.now() - t0 };
+    // hit-freeze on big smashes pauses the sim on purpose: measure the running time only
+    return { ticks: s.state.tick - k0, ms: performance.now() - t0 - (s.frozenMs - f0) };
   });
   const rate = r.ticks / (r.ms / 1000);
   check('[desktop] simulation runs at ~120 steps/s in the browser', rate > 108 && rate < 126, `${rate.toFixed(1)}/s`);
@@ -440,6 +442,159 @@ for (const [label, vp, dsf] of [
   if (shots) await page.screenshot({ path: TUT('phone-5-done') });
   await page.tap('#tut-next');
   check(`[tutorial ${label}] PLAY starts the game, zone labels gone`, (await G(page, 'screen')) === 'playing' && !(await visible(page, '#zone-move')));
+  await finish(p);
+}
+
+// ------------------------------------------------------------ perks, sound, enemies, boss (M5/M6)
+{
+  const p = await newPage('perks+sound 1280x720', { viewport: { width: 1280, height: 720 } });
+  const { page } = p;
+  // sound: no AudioContext before the first gesture, mute button visible in the menu
+  check('[sound] no AudioContext before a user gesture', (await G(page, 'audio.ctx')) === 'none');
+  check('[sound] mute button visible in the menu', await visible(page, '#mute-btn'));
+  await page.click('#play-btn');
+  await sleep(300);
+  check('[sound] first click creates and runs the AudioContext', (await G(page, 'audio.ctx')) === 'running', await G(page, 'audio.ctx'));
+  check('[sound] music plays during the game', (await G(page, 'audio.music')) === true);
+  const pb = await page.locator('#pause-btn').boundingBox();
+  const mb = await page.locator('#mute-btn').boundingBox();
+  check('[sound] in game the mute button sits next to (not on) the pause button', pb && mb && mb.x + mb.width <= pb.x, `${JSON.stringify(mb)} vs ${JSON.stringify(pb)}`);
+  await page.keyboard.press('KeyP');
+  await sleep(150);
+  check('[sound] silent while paused (context suspended)', (await G(page, 'audio.ctx')) === 'suspended', await G(page, 'audio.ctx'));
+  await page.keyboard.press('KeyP');
+  await sleep(150);
+  check('[sound] resumes with the game', (await G(page, 'audio.ctx')) === 'running', await G(page, 'audio.ctx'));
+  await page.click('#mute-btn');
+  check('[sound] mute button mutes', (await G(page, 'audio.muted')) === true && (await page.locator('#mute-btn').getAttribute('aria-pressed')) === 'true');
+  check('[sound] clicking mute does not pause or hook', (await G(page, 'screen')) === 'playing' && (await G(page, 'state.tether.state')) === 'idle');
+  check('[sound] mute saved in localStorage', (await page.evaluate(() => localStorage.getItem('shardsling.muted'))) === '1');
+  await sleep(200);
+  await page.screenshot({ path: `${OUT}mute-button-1280x720.png` });
+  await page.screenshot({ path: `${OUT}mute-button-closeup.png`, clip: { x: 1280 - 220, y: 0, width: 220, height: 80 } });
+
+  // perk choice after a cleared wave
+  await page.evaluate(() => window.__shardsling.clearField());
+  const offered = await waitFor(page, 'screen', 'perk', 4000);
+  check('[perks] clearing a wave opens the perk choice', offered);
+  const cards = await page.locator('.perk-card').count();
+  check('[perks] three perk cards', cards === 3, String(cards));
+  check('[perks] sim frozen while choosing', await (async () => {
+    const t0 = await G(page, 'state.tick');
+    await sleep(300);
+    return (await G(page, 'state.tick')) === t0;
+  })());
+  check('[perks] header names the cleared wave', /WAVE 1 CLEAR/.test(await page.textContent('#perk-kicker')));
+  check('[perks] Esc does not skip the choice', await (async () => {
+    await page.keyboard.press('Escape');
+    return (await G(page, 'screen')) === 'perk';
+  })());
+  await sleep(250);
+  await page.screenshot({ path: `${OUT}perk-choice-1280x720.png` });
+  const offer = await G(page, 'state.perkOffer');
+  await page.keyboard.press('Digit2');
+  check('[perks] key 2 picks the second perk and resumes', (await G(page, 'screen')) === 'playing' && (await G(page, `state.perks.${offer[1]}`)) >= 1, offer.join(','));
+  const nextWave = await waitFor(page, 'state.wave', 2, 3000);
+  check('[perks] next wave follows the choice', nextWave);
+  // second clear: pick with the mouse
+  await page.evaluate(() => window.__shardsling.clearField());
+  await waitFor(page, 'screen', 'perk', 4000);
+  await sleep(500); // input lockout
+  const offer2 = await G(page, 'state.perkOffer');
+  await page.locator('.perk-card').nth(0).click();
+  check('[perks] clicking a card picks it', (await G(page, 'screen')) === 'playing' && (await G(page, `state.perks.${offer2[0]}`)) >= 1);
+
+  // unmute again with the M key (and it is remembered after reload)
+  await page.keyboard.press('KeyM');
+  check('[sound] M toggles sound back on', (await G(page, 'audio.muted')) === false);
+  await page.keyboard.press('KeyM');
+  await page.reload({ waitUntil: 'networkidle' });
+  await sleep(300);
+  check('[sound] muted state survives a reload', (await G(page, 'audio.muted')) === true && (await page.locator('#mute-btn').getAttribute('aria-pressed')) === 'true');
+  await page.keyboard.press('KeyM');
+
+  // enemies (wave 7: hunters + a prism), shown with a telegraphed prism shot
+  await page.click('#play-btn');
+  await page.evaluate(() => {
+    const s = window.__shardsling;
+    s.jumpToWave(7);
+    s.state.lives = 3;
+    s.state.drone.invuln = 999;
+  });
+  const kinds = await page.evaluate(() => window.__shardsling.state.enemies.map((e) => e.kind).sort().join(','));
+  check('[enemies] wave 7 brings hunters and a prism', /hunter/.test(kinds) && /prism/.test(kinds), kinds);
+  const charged = await page.evaluate(
+    () =>
+      new Promise((res) => {
+        const t0 = performance.now();
+        const tick = () => {
+          const s = window.__shardsling.state;
+          if (s.enemies.some((e) => e.kind === 'prism' && e.charge > 0 && e.charge < e.chargeMax * 0.45)) return res(true);
+          if (performance.now() - t0 > 9000) return res(false);
+          requestAnimationFrame(tick);
+        };
+        tick();
+      }),
+  );
+  check('[enemies] prism telegraphs its shot', charged);
+  await page.screenshot({ path: `${OUT}wave-enemies-1280x720.png` });
+  const hunter0 = await page.evaluate(() => {
+    const s = window.__shardsling.state;
+    const h = s.enemies.find((e) => e.kind === 'hunter');
+    return h ? Math.hypot(h.x - s.drone.x, h.y - s.drone.y) : -1;
+  });
+  await sleep(1000);
+  const hunter1 = await page.evaluate(() => {
+    const s = window.__shardsling.state;
+    const h = s.enemies.find((e) => e.kind === 'hunter');
+    return h ? Math.hypot(h.x - s.drone.x, h.y - s.drone.y) : -1;
+  });
+  check('[enemies] hunters close in on the drone', hunter0 > 0 && hunter1 < hunter0, `${hunter0.toFixed(0)} -> ${hunter1.toFixed(0)}`);
+
+  // boss (wave 10)
+  await page.evaluate(() => {
+    const s = window.__shardsling;
+    s.jumpToWave(10);
+    s.state.drone.invuln = 999;
+  });
+  check('[boss] wave 10 is the boss', (await page.evaluate(() => window.__shardsling.state.enemies.map((e) => e.kind).join(','))) === 'boss');
+  const bossCharged = await page.evaluate(
+    () =>
+      new Promise((res) => {
+        const t0 = performance.now();
+        const tick = () => {
+          const b = window.__shardsling.state.enemies.find((e) => e.kind === 'boss');
+          if (b && b.charge > 0 && b.charge < b.chargeMax * 0.4) return res(true);
+          if (performance.now() - t0 > 9000) return res(false);
+          requestAnimationFrame(tick);
+        };
+        tick();
+      }),
+  );
+  check('[boss] telegraphs its attack before firing', bossCharged);
+  await page.screenshot({ path: `${OUT}boss-1280x720.png` });
+  await sleep(1500);
+  await page.screenshot({ path: `${OUT}boss-attack-1280x720.png` });
+  await finish(p);
+}
+
+// perk choice on a phone in landscape (touch): fits and a tap picks
+{
+  const vp = { width: 844, height: 390 };
+  const p = await newPage('perks phone-844x390 touch', { viewport: vp, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+  const { page } = p;
+  await page.tap('#play-btn');
+  await sleep(200);
+  await page.evaluate(() => window.__shardsling.clearField());
+  check('[perks phone] perk choice opens', await waitFor(page, 'screen', 'perk', 4000));
+  const box = await page.locator('#perks .panel').boundingBox();
+  check('[perks phone] perk panel fits on screen', box && box.y >= 0 && box.y + box.height <= vp.height + 1, JSON.stringify(box));
+  check('[perks phone] touch controls hidden while choosing', !(await visible(page, '#touch-ui')));
+  await sleep(500);
+  await page.screenshot({ path: `${OUT}perk-choice-phone-844x390.png` });
+  await page.locator('.perk-card').nth(2).tap();
+  check('[perks phone] a tap picks the perk', (await G(page, 'screen')) === 'playing');
+  check('[perks phone] touch controls back', await visible(page, '#touch-ui'));
   await finish(p);
 }
 

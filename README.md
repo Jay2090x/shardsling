@@ -4,8 +4,8 @@ Browser-Spiel (Canvas 2D, TypeScript, Vite, ohne Framework): Du steuerst eine ru
 Halten = Harpune auf einen Kristall-Splitter, er kreist am Neon-Seil um dich. Loslassen = er fliegt tangential weg
 und zertrümmert andere Splitter. Jedes Bruchstück ist neue Munition. Die Wände sind federnd (Bandenwürfe).
 
-Stand: 08.10.2026, Meilensteine 1–3 fertig plus eine erste spielbare Version des Kern-Twists („Hook & Fling“)
-und ein interaktives Tutorial beim ersten Start. Live: https://jay2090x.github.io/shardsling/ (GitHub Pages, Branch `gh-pages`).
+Stand: 08.10.2026, Meilensteine 1–3 fertig, Kern-Twist („Hook & Fling“) spielbar, interaktives Tutorial beim ersten Start,
+dazu **Sound & Musik (M6)**, **Perks** sowie **Gegner und Boss (M5)**. Live: https://jay2090x.github.io/shardsling/ (GitHub Pages, Branch `gh-pages`).
 
 ## Starten
 
@@ -27,7 +27,7 @@ alternativ `CHROMIUM_PATH=/pfad/zu/chrome npm run e2e`.
 
 | Gerät | Bewegen | Haken & Schwingen | Schleudern | Pause |
 |---|---|---|---|---|
-| Tastatur | WASD / Pfeile | Leertaste halten | loslassen | P / Esc |
+| Tastatur | WASD / Pfeile | Leertaste halten | loslassen | P / Esc (Ton an/aus: M) |
 | Maus | Zeiger (Drohne folgt) | Linksklick halten (zielt auf den Splitter am Zeiger) | loslassen | Pause-Button |
 | Touch | linke Hälfte ziehen (virtueller Stick) | rechte Hälfte halten | loslassen | Pause-Button |
 
@@ -48,10 +48,64 @@ Gespeichert wird `shardsling.tutorialDone` in localStorage (auch beim Übersprin
 Die Touch-Steuerung erscheint nach **Eingabegerät** (`pointer: coarse` bzw. erste echte Touch-Berührung), nicht nach Bildschirmbreite.
 Das Menü zeigt je nach Gerät die passenden Hinweise. Start mit genau einem Klick/Tap (oder Enter/Leertaste).
 
+## Sound (M6)
+
+- Effekte mit **ZzFX** (Frank Force, MIT): Haken, Treffer am Kristall, Schleudern, Zerschlagen (Tonhöhe nach Größe und Kombo),
+  Leben verloren, Welle geschafft (Akkord-Arpeggio), Game Over, Perk gewählt, Gegner zerstört, Boss-Treffer/-Angriff/-Ende.
+  Nur der Sample-Generator `buildSamples` ist übernommen (`src/audio/zzfx.ts`, Lizenztext im Kopf; bitgleich mit dem npm-Paket 1.4.0 geprüft),
+  die Wiedergabe läuft über einen eigenen AudioContext. Keine Audio-Dateien, keine externen Requests.
+- **Musik**: eigene kleine Synthwave-Schleife (`src/audio/music.ts`, Web-Audio-Oszillatoren): 8 Takte A-Moll, 112 BPM,
+  Saw-Bass mit Oktavsprüngen, Pad, Arpeggio mit Echo, Kick/Hats. Im Boss-Kampf durchgehende Kick und schnellere Hats.
+- **Ton an/aus**: Button oben rechts (im Spiel links neben Pause) oder Taste **M**; gespeichert als `shardsling.muted` in localStorage.
+- Browser-Regeln: Der AudioContext entsteht erst bei der ersten Geste (pointerdown/keydown/touchend, iOS-tauglich mit stillem Puffer).
+  Pause und verstecktes Tab → `suspend()` (komplett still), weiter → `resume()`. Das Menü-Demo bleibt stumm.
+- Alles liegt außerhalb von `src/sim/` (`src/audio/`); der Sound hört nur auf Sim-Events.
+
+## Perks (M5 Teil 1)
+
+Nach jeder **geschafften** Welle (nicht bei Zeitablauf) wird das Spiel kurz eingefroren und es gibt **1 von 3** Perks
+(Zufall aus dem seedbaren Generator, ausgereizte Perks werden nicht angeboten). Wahl per Klick/Tap, Tasten 1/2/3 oder ←/→ + Enter;
+die Karten sind die ersten 0,45 s gesperrt (gegen versehentliches Wählen beim Weiterdrücken). Werte in `src/sim/constants.ts` (`PERKS`).
+
+| Perk | Wirkung | max. |
+|---|---|---|
+| Long Rope | Haken-Reichweite +15 % pro Stufe | 3 |
+| Fast Swing | Kristall dreht schneller auf (+22 % Kraft) und fliegt schneller (+10 % Höchsttempo) | 3 |
+| Extra Life | +1 Leben (höchstens 5) | – |
+| Shockwave | Jeder Treffer zerschlägt auch kleine Kristalle/Staub und Jäger/Prismen im Umkreis (+55 px pro Stufe), ohne Kettenreaktion von Schockwellen | 3 |
+| Magnet Hook | Geschleuderte Kristalle lenken leicht auf Ziele vor ihnen (max. 2,2 rad/s pro Stufe, nur in einem Kegel von ±37°) | 2 |
+| Focus | Solange ein Kristall am Seil hängt, läuft der Rest der Welt 20 % pro Stufe langsamer (blauer Rand) | 2 |
+
+Im Sim: `state.perkOffer`, `perkOfferReady(s)` (0,6 s nach dem Clear), `choosePerk(s, i)`. Headless blockiert nichts:
+ein unbeantwortetes Angebot verfällt, wenn die nächste Welle kommt (wichtig für Training/Replays).
+
+## Gegner und Boss (M5 Teil 2)
+
+Alle werden wie Kristalle besiegt: einen Kristall **hineinschleudern** (oder schnell hineinschwingen). Alles, was Gegner verschießen,
+sind normale kleine Kristalle, also gefährlich bei Berührung, aber auch neue Munition. Jeder Gegner erscheint mit 1 s
+„Warp“-Ring, währenddessen harmlos. Werte in `src/sim/constants.ts` (`ENEMY`), Logik in `src/sim/enemies.ts`.
+
+- **Hunter** (rot, mit Auge) ab Welle 3 (1 → max. 4): treibt langsam auf die Drohne zu (75–115 px/s, Drohne: 560).
+  Nach einer Berührung zieht er sich kurz zurück. 150 Punkte.
+- **Prism** (orange) ab Welle 5 (1 → max. 3): treibt umher und schießt alle 5 s **einen** Kristall genau entlang einer vorher
+  1 s lang angezeigten Ziellinie. Zerschlagen: platzt in 5 scharfe Splitter (Kettenreaktion), die die Drohne kurz nicht verletzen. 200 Punkte.
+- **Boss „CORE“** in Welle 10 (und jeder weiteren 10.): groß, 14 LP (+6 je weiterem Boss), Treffer mit klein/mittel/groß = 1/2/3 Schaden,
+  der Wurfkristall zerspringt an der Panzerung (Splitter = Munition). Wechselt zwischen gezielter 3er-Salve und 8er-Ring,
+  jeweils 1,1–1,3 s angekündigt (gestrichelte Linien, Pulsieren); unter halber Energie häufiger. Bleibt beim Ankündigen stehen.
+  Besiegt: 2500 Punkte, das ganze Feld zerspringt, Welle geschafft. Boss-Wellen laufen nie auf Zeit ab.
+- Solange Gegner leben und weniger als 3 Kristalle im Feld sind, treibt alle 2,5 s ein mittlerer Kristall herein (keine Munitionsnot).
+- Eine Welle gilt erst als geschafft, wenn auch alle Gegner weg sind.
+
+## Feinschliff
+
+- Seil: leichter Durchhang gegen die Drehrichtung, kleine Schwingung, heller Kern.
+- **Hit-Freeze**: bei großen Treffern, Gegner-Kills und Boss-Treffern friert die Welt ~3 Frames ein (45 ms, höchstens alle 0,35 s;
+  beim Boss-Ende länger). Reine Darstellungssache in `main.ts`, die Simulation bleibt deterministisch.
+
 ## Was erledigt ist
 
 **M1 Fundament**
-- Vite 7 + TypeScript + Canvas 2D, kein React (JS-Bundle ≈ 28 KB, ≈ 10,5 KB gzip).
+- Vite 7 + TypeScript + Canvas 2D, kein React (JS-Bundle ≈ 67 KB, ≈ 24 KB gzip, inkl. Sound, Musik, Gegner).
 - `base: './'` (relative Pfade), Schriften Orbitron/Rajdhani selbst gehostet (nur woff2, latin, SIL OFL – Lizenzen in `src/assets/fonts/`). Keine CDNs, keine externen Requests (per Browser-Test geprüft).
 - `user-select: none`, `touch-action: none`, kein Tap-Highlight. Kein Tracking, keine Werbung, keine KI-Behauptungen im Spiel, der alte Markenname kommt nirgends vor.
 - Neon-Look wie beim Vorgänger: schwarz, Cyan/Magenta/Gelb, Glow.
@@ -74,36 +128,42 @@ Das Menü zeigt je nach Gerät die passenden Hinweise. Start mit genau einem Kli
 
 ## Tests
 
-- `npm test`: 18 Unit-Tests (Zeitschritt/Determinismus, Wände, Haken→Schleudern→Zerbrechen, Leben/Game Over, Wellen, Spielbarkeit, Tutorial-Arena).
-- `npm run e2e`: 94 Browser-Checks in 1280×720, 907×510, 800×450, 1080×607 (Touch-Emulation), 390×844 und 844×390 (Handy),
-  inkl. komplettem Tutorial-Durchlauf mit Tastatur und mit Touch. Screenshots landen in `screenshots/` (`tutorial-*.png` für die Tutorial-Schritte).
+- `npm test`: 41 Unit-Tests (Zeitschritt/Determinismus, Wände, Haken→Schleudern→Zerbrechen, Leben/Game Over, Wellen, Spielbarkeit, Tutorial-Arena,
+  **Perk-Angebot und jede Perk-Wirkung**, **Gegner-Wellen, Hunter, Prism-Telegraph/Splitter, Boss-Angriffe/Schaden/Ende**, Determinismus mit Gegnern).
+- `npm run e2e`: 128 Browser-Checks in 1280×720, 907×510, 800×450, 1080×607 (Touch-Emulation), 390×844 und 844×390 (Handy),
+  inkl. komplettem Tutorial-Durchlauf mit Tastatur und mit Touch, Perk-Auswahl (Taste, Maus, Tap am Handy), Ton aus/an (Button, M, Reload),
+  AudioContext erst nach Geste und still in der Pause, Gegner und Boss. Die Messung „≈120 Schritte/s“ zieht den Hit-Freeze ab.
+  Screenshots landen in `screenshots/` (u. a. `perk-choice-*.png`, `wave-enemies-1280x720.png`, `boss-*.png`, `mute-button-*.png`).
+  Test-Hooks nur mit `?e2e`: `clearField()`, `jumpToWave(n)`.
 
 ## Ordner
 
 ```
-src/sim/      Simulationskern (headless): constants, types, rng, sim, bot (Heuristik), headless runner
+src/sim/      Simulationskern (headless): constants, types, rng, sim, shared, perks, enemies, bot (Heuristik), headless runner
+src/audio/    ZzFX-Generator (MIT), Musik-Schleife, Sound-Manager (Mute, Suspend, Gesten-Unlock)
 src/engine/   FixedStepper (Akkumulator)
 src/render/   Canvas-Renderer + rein kosmetische Effekte (Partikel, Shake, Trails)
 src/input/    Tastatur/Maus/Touch
 src/main.ts   Spielablauf, Menüs, Pause, Highscore
 src/tutorial.ts  Tutorial-Schritte, Texte, Hervorhebungen
+src/perkInfo.ts  Namen, Texte und Icons der Perks (UI)
 test/         Vitest
 scripts/      e2e.mjs (Playwright), headless.ts
 ```
 
 ## Bekannte Punkte / offen
 
-- Balancing ist ein erster Wurf (Seil-Länge, Spin-Kraft, Bruch-Geschwindigkeit stehen in `src/sim/constants.ts`). Braucht echtes Anspielen.
-- Kein Sound (M6), keine Perks/Gegner (M5).
+- Balancing ist ein erster Wurf (Seil-Länge, Spin-Kraft, Bruch-Geschwindigkeit, Perks, Gegner stehen in `src/sim/constants.ts`). Braucht echtes Anspielen,
+  besonders Welle 5–10 und der Boss (Heuristik-Bot schafft ihn headless in ~50 s, ein Mensch sollte schneller sein).
+- Sounds und Musik sind nur technisch geprüft (Länge/Pegel, bitgleich mit ZzFX), nicht mit Ohren abgestimmt.
 - Hochformat am Handy: die Arena ist fest 16:9 und wird klein, deshalb ein Hinweis „Gerät drehen“.
 - Maus-Steuerung: Sobald die Maus bewegt wird (ohne gedrückte Bewegungstaste), folgt die Drohne dem Zeiger. Wer mit Tastatur spielt und die Maus anstößt, merkt das kurz.
 - Die Determinismus-Garantie gilt innerhalb derselben JS-Engine (Math.exp/sqrt können sich zwischen Engines im letzten Bit unterscheiden). Für Replays im Video reicht das, weil Training und Aufnahme in Chromium/Node (V8) laufen.
 
 ## Nächste Schritte (Meilenstein 4+)
 
-1. **M4 Feinschliff des Twists**: Anspielen und tunen, Seil-Optik (leichte Kurve/Verlet), Bandenwurf-Bonus, Treffer-Feedback (Hitstop).
-2. **M5 Spielschleife**: 1 von 3 Perks nach jeder Welle (längeres Seil, Doppelhaken, explosive Würfe, Magnet-Seil), Gegner (Jäger, „Prisma“), Boss in Welle 10.
-3. **M6 Sound**: ZzFX/ZzFXM (MIT), Mute-Schalter, stumm bei Pause, AudioContext-Resume (iOS).
+1. **M4 Feinschliff des Twists**: Anspielen und tunen, Bandenwurf-Bonus (Seil-Kurve und Hit-Freeze sind schon drin).
+2. **M5/M6 Feinschliff**: Perks/Gegner/Boss nach Anspielen tunen, evtl. weitere Perks (Doppelhaken, explosive Würfe), Sound nach Gehör abmischen.
 4. **M7 Fortschritt**: Tages-Seed („Daily Sling“), freischaltbare Farben.
 5. **M8 KI-Harness**: Beobachtungen + Aktionen (9 Richtungen × Haken) auf `src/sim`, Neuroevolution-Trainer, Replay-Recorder/-Player (`?replay=`).
 6. **M9/M10**: Cover, Preview-Videos, itch.io/CrazyGames – jeweils erst nach Freigabe.

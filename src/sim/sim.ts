@@ -8,19 +8,25 @@
  *
  * That makes it usable in Node for automated tests, replays and training an agent.
  */
+import { ARENA_H, ARENA_W, DRONE, ENEMY, SHARD, TETHER, WAVE_DELAY, WAVE_MAX_AGE } from './constants';
+import { blastEnemies, collideEnemies, isBossWave, spawnEnemies, updateEnemies, updateSupply } from './enemies';
 import {
-  ARENA_H,
-  ARENA_W,
-  COMBO_WINDOW,
-  DRONE,
-  MAX_COMBO_MULT,
-  SHARD,
-  TETHER,
-  WAVE_DELAY,
-  WAVE_MAX_AGE,
-} from './constants';
+  blastRadius,
+  hookRange,
+  noPerks,
+  rollPerkOffer,
+  spinForce,
+  spinSpeedFactor,
+  steerMagnet,
+  worldTimeScale,
+} from './perks';
 import { nextRandom, randInt, randRange } from './rng';
+import { bounceWalls, canHurtDrone, edgePoint, hurtDrone, makeShard, registerSmash, speedOf } from './shared';
 import type { GameState, Mode, Shard, SimInput, Tier } from './types';
+
+export { makeShard } from './shared';
+export { choosePerk, applyPerk, perkOfferReady, hookRange, worldTimeScale, blastRadius } from './perks';
+export { isBossWave, hunterCount, prismCount, makeEnemy } from './enemies';
 
 export function createGame(seed: number, mode: Mode = 'play'): GameState {
   const s: GameState = {
@@ -51,7 +57,12 @@ export function createGame(seed: number, mode: Mode = 'play'): GameState {
     },
     tether: { state: 'idle', hx: ARENA_W / 2, hy: ARENA_H / 2, targetId: -1, length: 0, dir: 1 },
     shards: [],
+    enemies: [],
     nextId: 1,
+    perks: noPerks(),
+    perkOffer: null,
+    supplyTimer: ENEMY.supplyEvery,
+    bosses: 0,
     prevHook: false,
     events: [],
   };
@@ -96,6 +107,9 @@ export function cloneState(s: GameState): GameState {
     drone: { ...s.drone },
     tether: { ...s.tether },
     shards: s.shards.map((sh) => ({ ...sh, verts: sh.verts.slice() })),
+    enemies: s.enemies.map((e) => ({ ...e })),
+    perks: { ...s.perks },
+    perkOffer: s.perkOffer ? s.perkOffer.slice() : null,
     events: s.events.slice(),
   };
 }
@@ -107,46 +121,14 @@ export function stepPure(s: GameState, input: SimInput, dt: number): GameState {
   return next;
 }
 
-export function makeShard(
-  s: GameState,
-  tier: Tier,
-  x: number,
-  y: number,
-  vx: number,
-  vy: number,
-): Shard {
-  const r = SHARD.radius[tier];
-  const n = tier === 0 ? 5 : randInt(s, 6, 8);
-  const verts: number[] = [];
-  for (let i = 0; i < n; i++) {
-    // alternate long/short spikes for a crystal silhouette
-    verts.push(i % 2 === 0 ? randRange(s, 0.92, 1.12) : randRange(s, 0.62, 0.86));
-  }
-  return {
-    id: s.nextId++,
-    tier,
-    x,
-    y,
-    px: x,
-    py: y,
-    vx,
-    vy,
-    r,
-    mass: (r / 20) * (r / 20),
-    angle: randRange(s, 0, Math.PI * 2),
-    spin: randRange(s, -1.2, 1.2),
-    verts,
-    armed: 0,
-    safe: 0,
-    life: tier === 0 ? SHARD.dustLife : Infinity,
-  };
-}
-
-function spawnWave(s: GameState, wave: number): void {
+/** Spawns wave `wave` on top of the current field (also used by tests and the e2e hook to jump ahead). */
+export function spawnWave(s: GameState, wave: number): void {
   s.wave = wave;
   s.waveAge = 0;
-  const large = Math.min(1 + Math.ceil(wave / 2), 6);
-  const medium = Math.min(1 + Math.floor(wave / 2), 6);
+  const boss = isBossWave(wave);
+  s.events.push({ type: 'wave', wave, bonus: 0, boss });
+  const large = boss ? 0 : Math.min(1 + Math.ceil(wave / 2), 6);
+  const medium = boss ? ENEMY.boss.ammo : Math.min(1 + Math.floor(wave / 2), 6);
   const speed = Math.min(45 + wave * 9, 140);
   const total = large + medium;
   if (wave === 1) {
@@ -158,39 +140,14 @@ function spawnWave(s: GameState, wave: number): void {
   }
   for (let i = 0; i < total; i++) {
     const tier: Tier = i < large ? 3 : 2;
-    const r = SHARD.radius[tier];
     // spawn along the edges, away from the drone
-    let x = 0;
-    let y = 0;
-    for (let tries = 0; tries < 20; tries++) {
-      const edge = randInt(s, 0, 3);
-      const m = r + 30;
-      if (edge === 0) {
-        x = randRange(s, m, ARENA_W - m);
-        y = m;
-      } else if (edge === 1) {
-        x = ARENA_W - m;
-        y = randRange(s, m, ARENA_H - m);
-      } else if (edge === 2) {
-        x = randRange(s, m, ARENA_W - m);
-        y = ARENA_H - m;
-      } else {
-        x = m;
-        y = randRange(s, m, ARENA_H - m);
-      }
-      const dx = x - s.drone.x;
-      const dy = y - s.drone.y;
-      if (dx * dx + dy * dy > 360 * 360) break;
-    }
+    const { x, y } = edgePoint(s, SHARD.radius[tier]);
     // drift roughly towards the centre
     const toC = Math.atan2(ARENA_H / 2 - y, ARENA_W / 2 - x) + randRange(s, -0.7, 0.7);
-    const v = speed * randRange(s, 0.7, 1.15);
+    const v = (boss ? 60 : speed) * randRange(s, 0.7, 1.15);
     s.shards.push(makeShard(s, tier, x, y, Math.cos(toC) * v, Math.sin(toC) * v));
   }
-}
-
-function speedOf(o: { vx: number; vy: number }): number {
-  return Math.sqrt(o.vx * o.vx + o.vy * o.vy);
+  spawnEnemies(s, wave);
 }
 
 function isHeld(s: GameState, sh: Shard): boolean {
@@ -208,8 +165,8 @@ function findShard(s: GameState, id: number): Shard | undefined {
   return undefined;
 }
 
-function maxSpinFor(r: number): number {
-  return TETHER.maxSpinSpeed * Math.sqrt(SHARD.radius[1] / r);
+function maxSpinFor(s: GameState, r: number): number {
+  return TETHER.maxSpinSpeed * spinSpeedFactor(s) * Math.sqrt(SHARD.radius[1] / r);
 }
 
 /** Advance the simulation by dt seconds (callers use the fixed SIM_DT). Mutates `s`. */
@@ -224,6 +181,10 @@ export function step(s: GameState, input: SimInput, dt: number): GameState {
   for (const sh of s.shards) {
     sh.px = sh.x;
     sh.py = sh.y;
+  }
+  for (const e of s.enemies) {
+    e.px = e.x;
+    e.py = e.y;
   }
 
   const alive = s.phase === 'playing';
@@ -258,34 +219,43 @@ export function step(s: GameState, input: SimInput, dt: number): GameState {
   // ---- tether ----------------------------------------------------------------
   updateTether(s, input, hookHeld, dt);
 
+  // Focus perk: everything except the drone and the crystal on the rope runs slower while swinging
+  const ws = worldTimeScale(s);
+
   // ---- shards: integrate ------------------------------------------------------
   const toRemove = new Set<number>();
   for (const sh of s.shards) {
-    sh.x += sh.vx * dt;
-    sh.y += sh.vy * dt;
-    sh.angle += sh.spin * dt;
+    const held = isHeld(s, sh);
+    const k = held ? dt : dt * ws;
+    if (!held) steerMagnet(s, sh, k);
+    sh.x += sh.vx * k;
+    sh.y += sh.vy * k;
+    sh.angle += sh.spin * k;
     if (sh.armed > 0) {
-      sh.armed = Math.max(0, sh.armed - dt);
+      sh.armed = Math.max(0, sh.armed - k);
       if (speedOf(sh) < SHARD.hotSpeed * 0.8) sh.armed = 0;
     }
-    if (sh.safe > 0) sh.safe = Math.max(0, sh.safe - dt);
-    if (!isHeld(s, sh)) {
+    if (sh.safe > 0) sh.safe = Math.max(0, sh.safe - k);
+    if (!held) {
       const sp = speedOf(sh);
       if (sp > SHARD.maxDrift) {
-        const k = Math.exp(-SHARD.driftDrag * dt);
-        const target = Math.max(SHARD.maxDrift, sp * k);
+        const f = Math.exp(-SHARD.driftDrag * k);
+        const target = Math.max(SHARD.maxDrift, sp * f);
         sh.vx *= target / sp;
         sh.vy *= target / sp;
       }
     }
     if (sh.tier === 0 && alive) {
-      sh.life -= dt;
+      sh.life -= k;
       if (sh.life <= 0) {
         toRemove.add(sh.id);
         s.events.push({ type: 'fade', x: sh.x, y: sh.y });
       }
     }
   }
+
+  // ---- enemies: AI + movement (may fire new crystals) -----------------------------
+  if (s.enemies.length > 0) updateEnemies(s, dt, ws, alive);
 
   // ---- walls ------------------------------------------------------------------
   for (const sh of s.shards) bounceWalls(s, sh, SHARD.wallRestitution, true);
@@ -347,6 +317,16 @@ export function step(s: GameState, input: SimInput, dt: number): GameState {
     }
   }
 
+  // ---- enemies vs shards / drone / each other ----------------------------------------
+  let bossDown = false;
+  if (s.enemies.length > 0) {
+    bossDown = collideEnemies(s, {
+      isHot: (sh) => isHot(s, sh),
+      isHeld: (sh) => isHeld(s, sh),
+      breakLater: (sh, nx, ny, impact) => toBreak.push({ id: sh.id, nx, ny, impact }),
+    });
+  }
+
   // ---- drone vs shards --------------------------------------------------------------
   for (const sh of s.shards) {
     if (isHeld(s, sh) || toRemove.has(sh.id)) continue;
@@ -365,21 +345,7 @@ export function step(s: GameState, input: SimInput, dt: number): GameState {
     sh.x += nx * overlap * (DRONE.mass / tm);
     sh.y += ny * overlap * (DRONE.mass / tm);
     const vn = (d.vx - sh.vx) * nx + (d.vy - sh.vy) * ny;
-    const harmful =
-      alive && s.mode === 'play' && d.invuln <= 0 && sh.safe <= 0 && sh.tier > 0;
-    if (harmful) {
-      s.lives--;
-      d.invuln = DRONE.hitInvuln;
-      s.events.push({ type: 'hurt', x: d.x, y: d.y, lives: s.lives });
-      d.vx -= nx * 420;
-      d.vy -= ny * 420;
-      // losing a life also drops whatever is on the rope
-      if (s.tether.state !== 'idle') s.tether.state = 'retracting';
-      if (s.lives <= 0) {
-        s.phase = 'gameover';
-        s.events.push({ type: 'gameover', score: s.score });
-      }
-    }
+    if (canHurtDrone(s) && sh.safe <= 0 && sh.tier > 0) hurtDrone(s, nx, ny);
     if (vn > 0) {
       const jImp = ((1 + 0.6) * vn) / (1 / DRONE.mass + 1 / sh.mass);
       d.vx -= (jImp / DRONE.mass) * nx;
@@ -390,18 +356,49 @@ export function step(s: GameState, input: SimInput, dt: number): GameState {
   }
 
   // ---- breaking ---------------------------------------------------------------------
+  const firstNewId = s.nextId; // fragments created below are never caught by a shockwave of this step
+  const radius = blastRadius(s);
+  const blasts: { x: number; y: number; r: number }[] = [];
   for (const br of toBreak) {
     if (toRemove.has(br.id)) continue;
     const sh = findShard(s, br.id);
     if (!sh) continue;
     toRemove.add(sh.id);
     breakShard(s, sh, br.nx, br.ny, br.impact);
+    if (radius > 0) blasts.push({ x: sh.x, y: sh.y, r: sh.r + radius });
+  }
+  // Shockwave perk: small crystals and dust near a smash shatter too (one level deep, no chain of shockwaves)
+  for (const b of blasts) {
+    s.events.push({ type: 'blast', x: b.x, y: b.y, r: b.r });
+    for (const sh of s.shards) {
+      if (sh.id >= firstNewId || sh.tier > 1 || toRemove.has(sh.id) || isHeld(s, sh)) continue;
+      const dx = sh.x - b.x;
+      const dy = sh.y - b.y;
+      const rr = b.r + sh.r;
+      if (dx * dx + dy * dy >= rr * rr) continue;
+      const l = Math.sqrt(dx * dx + dy * dy) || 1;
+      toRemove.add(sh.id);
+      breakShard(s, sh, dx / l, dy / l, SHARD.breakSpeed);
+    }
+    blastEnemies(s, b.x, b.y, b.r);
+  }
+  if (bossDown) {
+    // the boss takes the whole field with it
+    for (const sh of s.shards) {
+      if (toRemove.has(sh.id)) continue;
+      toRemove.add(sh.id);
+      s.events.push({ type: 'break', x: sh.x, y: sh.y, r: sh.r, tier: sh.tier, combo: s.combo, points: 0 });
+    }
   }
   if (toRemove.size > 0) {
     s.shards = s.shards.filter((sh) => !toRemove.has(sh.id));
     if (s.tether.state === 'attached' || s.tether.state === 'firing') {
       if (toRemove.has(s.tether.targetId)) s.tether.state = 'retracting';
     }
+  }
+  if (s.enemies.length > 0) {
+    s.enemies = s.enemies.filter((e) => e.hp > 0);
+    if (alive && s.mode !== 'tutorial') updateSupply(s, dt);
   }
 
   // ---- combo / waves ---------------------------------------------------------------------
@@ -419,59 +416,29 @@ export function step(s: GameState, input: SimInput, dt: number): GameState {
       s.waveTimer -= dt;
       if (s.waveTimer <= 0) {
         s.waveTimer = 0;
+        // an offer nobody answered (headless runs) simply lapses
+        s.perkOffer = null;
         spawnWave(s, s.wave + 1);
       }
     } else {
       let solid = 0;
       for (const sh of s.shards) if (sh.tier > 0) solid++;
-      // next wave when the field is (almost) clear, or anyway after WAVE_MAX_AGE seconds
-      if (solid <= 1 || s.waveAge > WAVE_MAX_AGE) {
+      if (solid <= 1 && s.enemies.length === 0) {
+        // wave cleared: bonus + (play mode) a perk choice before the next wave
         const bonus = s.mode === 'play' ? 50 * s.wave : 0;
         s.score += bonus;
         s.waveTimer = WAVE_DELAY;
-        s.events.push({ type: 'wave', wave: s.wave + 1, bonus });
+        s.events.push({ type: 'clear', wave: s.wave, bonus });
+        if (s.mode === 'play') s.perkOffer = rollPerkOffer(s);
+      } else if (s.waveAge > WAVE_MAX_AGE && !s.enemies.some((e) => e.kind === 'boss')) {
+        // too slow: the next wave arrives anyway (no bonus, no perk)
+        s.waveTimer = WAVE_DELAY;
       }
     }
   }
 
   s.prevHook = hookHeld;
   return s;
-}
-
-function bounceWalls(
-  s: GameState,
-  o: { x: number; y: number; vx: number; vy: number; r: number },
-  rest: number,
-  emit: boolean,
-): void {
-  let hit = 0;
-  if (o.x < o.r) {
-    o.x = o.r;
-    if (o.vx < 0) {
-      hit = Math.max(hit, -o.vx);
-      o.vx = -o.vx * rest;
-    }
-  } else if (o.x > ARENA_W - o.r) {
-    o.x = ARENA_W - o.r;
-    if (o.vx > 0) {
-      hit = Math.max(hit, o.vx);
-      o.vx = -o.vx * rest;
-    }
-  }
-  if (o.y < o.r) {
-    o.y = o.r;
-    if (o.vy < 0) {
-      hit = Math.max(hit, -o.vy);
-      o.vy = -o.vy * rest;
-    }
-  } else if (o.y > ARENA_H - o.r) {
-    o.y = ARENA_H - o.r;
-    if (o.vy > 0) {
-      hit = Math.max(hit, o.vy);
-      o.vy = -o.vy * rest;
-    }
-  }
-  if (emit && hit > 220) s.events.push({ type: 'bounce', x: o.x, y: o.y, speed: hit });
 }
 
 function updateTether(s: GameState, input: SimInput, hookHeld: boolean, dt: number): void {
@@ -519,7 +486,7 @@ function updateTether(s: GameState, input: SimInput, hookHeld: boolean, dt: numb
         // give up if the shard escaped far beyond range
         const ox = t.hx - d.x;
         const oy = t.hy - d.y;
-        if (ox * ox + oy * oy > (TETHER.range * 1.6) ** 2) t.state = 'retracting';
+        if (ox * ox + oy * oy > (hookRange(s) * 1.6) ** 2) t.state = 'retracting';
       }
     }
   }
@@ -564,7 +531,8 @@ function updateTether(s: GameState, input: SimInput, hookHeld: boolean, dt: numb
 /** Which shard the hook would grab right now (read-only; also used for the aim preview). */
 export function pickTarget(s: GameState, input: SimInput): Shard | undefined {
   const d = s.drone;
-  const range2 = TETHER.range * TETHER.range;
+  const range = hookRange(s);
+  const range2 = range * range;
   let best: Shard | undefined;
   let bestScore = Infinity;
   const hasAim = input.aimX !== null && input.aimY !== null;
@@ -607,9 +575,9 @@ function applyRope(s: GameState, sh: Shard, dt: number): void {
   const tx = -ny * t.dir;
   const ty = nx * t.dir;
   const vt = (sh.vx - d.vx) * tx + (sh.vy - d.vy) * ty;
-  const maxV = maxSpinFor(sh.r);
+  const maxV = maxSpinFor(s, sh.r);
   if (vt < maxV) {
-    const a = Math.min(TETHER.spinForce / sh.mass, (maxV - vt) / dt);
+    const a = Math.min(spinForce(s) / sh.mass, (maxV - vt) / dt);
     sh.vx += tx * a * dt;
     sh.vy += ty * a * dt;
   }
@@ -645,15 +613,8 @@ function applyRope(s: GameState, sh: Shard, dt: number): void {
 }
 
 function breakShard(s: GameState, sh: Shard, nx: number, ny: number, impact: number): void {
-  if (s.comboTimer > 0) s.combo++;
-  else s.combo = 1;
-  s.comboTimer = COMBO_WINDOW;
-  if (s.combo > s.maxCombo) s.maxCombo = s.combo;
-  const mult = Math.min(s.combo, MAX_COMBO_MULT);
-  const points = s.mode === 'play' ? SHARD.score[sh.tier] * mult : 0;
-  s.score += points;
-  s.breaks++;
-  s.events.push({ type: 'break', x: sh.x, y: sh.y, r: sh.r, tier: sh.tier, combo: s.combo, points });
+  const { combo, points } = registerSmash(s, SHARD.score[sh.tier]);
+  s.events.push({ type: 'break', x: sh.x, y: sh.y, r: sh.r, tier: sh.tier, combo, points });
 
   if (sh.tier === 0) return;
   const childTier = (sh.tier - 1) as Tier;

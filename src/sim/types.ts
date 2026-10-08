@@ -69,8 +69,53 @@ export type SimEvent =
   | { type: 'bounce'; x: number; y: number; speed: number }
   | { type: 'clack'; x: number; y: number; speed: number }
   | { type: 'hurt'; x: number; y: number; lives: number }
-  | { type: 'wave'; wave: number; bonus: number }
+  | { type: 'wave'; wave: number; bonus: number; boss: boolean }
+  | { type: 'clear'; wave: number; bonus: number }
+  | { type: 'perk'; perk: PerkId; level: number }
+  | { type: 'blast'; x: number; y: number; r: number }
+  | { type: 'enemySpawn'; kind: EnemyKind; x: number; y: number }
+  | { type: 'enemyKill'; kind: EnemyKind; x: number; y: number; r: number; combo: number; points: number }
+  | { type: 'charge'; kind: EnemyKind; attack: EnemyAttack; x: number; y: number }
+  | { type: 'enemyFire'; kind: EnemyKind; attack: EnemyAttack; x: number; y: number }
+  | { type: 'bossHit'; x: number; y: number; hp: number; maxHp: number; points: number }
   | { type: 'gameover'; score: number };
+
+export type PerkId = 'rope' | 'spin' | 'life' | 'blast' | 'magnet' | 'focus';
+export const PERK_IDS: readonly PerkId[] = ['rope', 'spin', 'life', 'blast', 'magnet', 'focus'];
+
+export type EnemyKind = 'hunter' | 'prism' | 'boss';
+export type EnemyAttack = 'none' | 'shot' | 'volley' | 'nova';
+
+export interface Enemy {
+  id: number;
+  kind: EnemyKind;
+  x: number;
+  y: number;
+  px: number;
+  py: number;
+  vx: number;
+  vy: number;
+  r: number;
+  mass: number;
+  hp: number;
+  maxHp: number;
+  angle: number;
+  spin: number;
+  /** >0: warping in (harmless, frozen) */
+  spawn: number;
+  /** seconds until the next attack (prism, boss) */
+  cooldown: number;
+  /** >0: telegraphing `attack`; fires when it reaches 0 */
+  charge: number;
+  chargeMax: number;
+  attack: EnemyAttack;
+  /** aim angle chosen when the telegraph started (the shot follows exactly this line) */
+  aim: number;
+  /** >0: hit flash / short invulnerability (boss) */
+  flash: number;
+  /** >0: hunter backs off after touching the drone */
+  stun: number;
+}
 
 /** 'tutorial': harmless practice arena (no damage, no points, no waves). */
 export type Mode = 'attract' | 'play' | 'tutorial';
@@ -97,7 +142,16 @@ export interface GameState {
   drone: Drone;
   tether: Tether;
   shards: Shard[];
+  enemies: Enemy[];
   nextId: number;
+  /** perk stacks picked so far */
+  perks: Record<PerkId, number>;
+  /** pending choice after a cleared wave (play mode); null = none. See perkOfferReady()/choosePerk(). */
+  perkOffer: PerkId[] | null;
+  /** counts down while enemies are alive and ammo is scarce */
+  supplyTimer: number;
+  /** number of bosses met so far (later bosses are tougher) */
+  bosses: number;
   prevHook: boolean;
   /** events produced by the most recent step (cleared at the start of every step) */
   events: SimEvent[];
